@@ -105,7 +105,9 @@ export const getAllUser = async (req, res) => {
 
 export const getProfile = async (req, res) => {
     try {
-        const user = await User.findById(req.user.id);
+        const userId = req.user._id;
+        console.log(req.user);
+        const user = await User.findById(req.user._id);
         if (!user) {
             return res.status(400).json({ message: 'User not found' });
         }
@@ -153,6 +155,15 @@ export const changePassword = async (req, res) => {
 
 export const updateExperience = async (req, res) => {
     
+};
+
+export const deleteAccount = async (req, res) => {
+    try {
+        await User.findByIdAndDelete(req.user._id);
+        return res.status(200).json({ message: 'Account deleted successfully' });
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
 };
 
 

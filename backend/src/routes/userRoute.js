@@ -10,7 +10,7 @@ import {
     changePassword,
     updateExperience
 } from '../controllers/userController.js';
-import { verifyJWT } from '../middlewares/auth/auth.js';
+import { verifyJWT, isAdmin } from '../middlewares/auth/auth.js';
 
 const router = express.Router();
 
@@ -27,7 +27,7 @@ router.post('/logout', verifyJWT, logout);
 router.get('/', getAllUser);
 
 // get user profile
-router.get('/profile', getProfile);
+router.get('/profile', verifyJWT, getProfile);
 
 // update user profile
 router.put('/profile', updateProfile);
@@ -40,5 +40,8 @@ router.put('/change-password', verifyJWT, changePassword);
 
 // update experience
 router.put('/experience', updateExperience);
+
+//delete user
+router.delete('/dashboard', verifyJWT, isAdmin, deleteUser);
 
 export default router;

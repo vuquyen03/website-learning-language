@@ -1,22 +1,21 @@
-import './App.css';
+import { useEffect } from 'react';
+import AdminPanel from './pages/AdminPanel';
+import { Admin, Resource, ShowGuesser, EditGuesser } from "react-admin";
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import UserList from './components/UserList.Admin';
+import CourseList from './components/CourseList.Admin';
+import MainSection from './pages/MainSection.js';
+import Home from './pages/Home.js';
 
 function App() {
+
+  // get darkMode state from store
+  // const darkMode = useSelector((state) => state.darkMode.value)
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <BrowserRouter>
+      <MainSection /> 
+    </BrowserRouter>
   );
 }
 

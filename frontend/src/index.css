@@ -1,13 +1,32 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.form-input-style {
+  @apply bg-gray-100 dark:bg-slate-900 border-2 border-gray-300 dark:border-slate-700 rounded-xl focus:outline-none focus:border-sky-400 dark:focus:border-sky-400;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+.form-container-style {
+  @apply w-full max-w-sm h-fit flex flex-col justify-center items-center bg-white dark:bg-slate-800 px-4 py-8 sm:p-8 rounded-xl shadow-2xl;
+}
+
+html {
+  font-family: 'Nunito Sans', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.hero-bg {
+  background-image: url('./assets/waves.svg');
+  background-size: 105%, 80px;
+  background-position: bottom, top left;
+  background-repeat: no-repeat, repeat;
+}
+
+.text-shadow {
+  text-shadow: 0 0 5px rgba(0, 0, 0, 0.7);
+}
+
+.custom-button {
+  border-radius: 8px; 
 }

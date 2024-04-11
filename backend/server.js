@@ -18,7 +18,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 app.use(cookieParser()); // đọc và ghi cookie trong các yêu cầu HTTP
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 5000;
 
 // connect to database
 connectDB(process.env.MONGODB_URI);
