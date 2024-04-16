@@ -8,7 +8,10 @@ import {
     updateProfile,
     forgetPassword,
     changePassword,
-    updateExperience
+    updateExperience,
+    deleteAccount,
+    refreshToken,
+    checkLogin
 } from '../controllers/userController.js';
 import { verifyJWT, isAdmin } from '../middlewares/auth/auth.js';
 
@@ -41,7 +44,12 @@ router.put('/change-password', verifyJWT, changePassword);
 // update experience
 router.put('/experience', updateExperience);
 
-//delete user
-router.delete('/dashboard', verifyJWT, isAdmin, deleteUser);
+// delete user
+router.delete('/dashboard', verifyJWT, isAdmin, deleteAccount);
 
+// refresh token
+router.post('/refresh-token', verifyJWT, refreshToken);
+
+// check login status
+router.get('/check-login', verifyJWT, checkLogin);
 export default router;

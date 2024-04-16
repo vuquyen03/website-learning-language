@@ -2,18 +2,18 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // Send token to the client
-export const sendToken = (res, user, accessToken, refreshToken , message, statusCode = 200) => {
+export const sendToken = async (res, user, accessToken, refreshToken , message, statusCode = 200) => {
 
-    res.cookie('accessToken', accessToken, {
+    await res.cookie('accessToken', accessToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: true,
         sameSite: 'none',
-        expires: new Date(Date.now() + 1000 * 60 * 60 * parseInt(process.env.ACCESS_TOKEN_EXPIRY)), // accessToken is used during hours
+        expires: new Date(Date.now() + 1000 * 60 * parseInt(process.env.ACCESS_TOKEN_EXPIRY)), // accessToken is used during minutes
     });
 
-    res.cookie('refreshToken', refreshToken, {
+    await res.cookie('refreshToken', refreshToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: true,
         sameSite: 'none',
         expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * parseInt(process.env.REFRESH_TOKEN_EXPIRY)), // refreshToken is used during days 
     });

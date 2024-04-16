@@ -1,13 +1,21 @@
-import React from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { CircularProgress, Button, Stack } from '@mui/material';
+import { Navigate, Link } from 'react-router-dom';
 import countryLogo from '../assets/HomePage.png';
-import Button from '@mui/material/Button';
-import Stack from '@mui/material/Stack';
-// import Auth from '../utils/auth';
+import UserStatus from '../hooks/userStatus';
+
+
 
 const Home = () => {
-    //   const loggedIn = Auth.loggedIn();
-    const loggedIn = false;
+    const { loggedIn, isLoading } = UserStatus();
+
+    if (isLoading) {
+        return (
+            <div className="flex justify-center items-center h-screen">
+                <CircularProgress />
+            </div>
+        );
+    }
+
     if (loggedIn) {
         return <Navigate to="/dashboard" />;
     }
@@ -54,7 +62,7 @@ const Home = () => {
                 {/* Country Logo */}
                 <img
                     src={countryLogo}
-                    alt="Japan Country Logo"
+                    alt="Logo"
                     className="w-48 h-48 md:w-80 md:h-80 lg:w-[550px] lg:h-[400px] transition-all duration-300 ease-in-out"
                 />
             </div>

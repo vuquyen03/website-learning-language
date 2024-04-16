@@ -15,7 +15,12 @@ const app = express();
 // middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors());
+app.use(
+    cors({
+      credentials: true, // Cho phép gửi cookie qua CORS
+      origin: true // Cho phép tất cả các nguồn gốc (origin) truy cập
+    })
+  );
 app.use(cookieParser()); // đọc và ghi cookie trong các yêu cầu HTTP
 
 const PORT = process.env.PORT || 5000;

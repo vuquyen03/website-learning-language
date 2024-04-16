@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 
 import logo from "../assets/HustEdu.png";
 import Button from "@mui/material/Button";
-import { HiOutlineMoon, HiOutlineSun } from 'react-icons/hi';
 
 
 const Header = () => {
@@ -26,7 +25,7 @@ const Header = () => {
                     </Link>
 
                     <Link to="/login">
-                        <Button variant="contained" color="error" sx={{ 'margin': '5px', 'border-radius': '8px' }}>
+                        <Button variant="contained" color="success" sx={{ 'margin': '5px', 'border-radius': '8px' }}>
                             Login
                         </Button>
                     </Link>

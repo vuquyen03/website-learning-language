@@ -12,6 +12,23 @@
   @apply w-full max-w-sm h-fit flex flex-col justify-center items-center bg-white dark:bg-slate-800 px-4 py-8 sm:p-8 rounded-xl shadow-2xl;
 }
 
+.sidebar-btn {
+  @apply p-2 xl:px-4 flex justify-center xl:justify-start items-center font-bold hover:bg-gray-200/75 dark:hover:bg-slate-700 border-2 border-transparent rounded-xl;
+}
+
+
+.sidebar-btn-icon {
+  @apply h-7 w-7 xl:h-6 xl:w-6 xl:mr-4;
+}
+
+.sidebar-text {
+  @apply hidden xl:inline-block;
+}
+
+.sidebar-btn.active {
+  @apply bg-green-100 border-2 border-green-300 text-green-500 dark:bg-transparent dark:text-red-400 dark:border-red-400 dark:bg-slate-700;
+}
+
 html {
   font-family: 'Nunito Sans', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }

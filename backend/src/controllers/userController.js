@@ -11,7 +11,7 @@ const generateAccessAndRefreshToken = async (userId) => {
         await user.save();
         return { accessToken, refreshToken };
     } catch (error) {
-        return res.status(500).json({ message: error.message });
+        return res.status(500).json({ message: 'Something went wrong while generating refresh and acess token'});
     }
 };
 
@@ -43,6 +43,7 @@ export const register = async (req, res) => {
 export const login = async (req, res) => {
     try {
         const { email, password } = req.body;
+        console.log(req.body);
         if (!email || !password) {
             return res.status(400).json({ message: 'All fields are required' });
         }
@@ -166,4 +167,46 @@ export const deleteAccount = async (req, res) => {
     }
 };
 
+export const refreshToken = async (req, res) => {
+    try {
+        const oldRefreshToken = req.cookies.refreshToken;
+        if (!oldRefreshToken) {
+            return res.status(403).json({ message: 'User not authenticated' });
+        }
 
+        const decoded = jwt.verify(oldRefreshToken, process.env.REFRESH_TOKEN_SECRET);
+        const user = await User.findById(decoded._id);
+        if (!user) {
+            return res.status(403).json({ message: 'User not authenticated' });
+        }
+
+        if (user.refreshToken !== oldRefreshToken) {
+            return res.status(403).json({ message: 'Refresh token not valid' });
+        }
+        // console.log("Old RefreshToken", user.refreshToken);
+
+
+        const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id);
+        sendToken(res, user, accessToken, refreshToken, 'Token Refreshed Successfully', 200);
+
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+};
+
+export const checkLogin = async (req, res) => {
+    try {
+        const token = req.cookies.accessToken;
+        if (!token) {
+            return res.status(401).json({ message: 'You need to login' });
+        }
+        const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+        const user = await User.findById(decoded._id).select('-password -refreshToken');
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        return res.status(200).json({ user });
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+};

@@ -13,7 +13,6 @@ const verifyJWT = async (req, res, next) => {
             return res.status(401).json({ message: 'You need to login' });
         }
         const decoded = jwt.verify(token, secret);
-        console.log(decoded);
         // Query user by id in database without password and refreshToken
         const user = await User.findById(decoded._id).select('-password -refreshToken');
         if (!user) {

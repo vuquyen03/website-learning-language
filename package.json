@@ -9,5 +9,8 @@
     "dev": "concurrently \"cd backend && npm run start\" \"cd frontend && npm run start\""
   },
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.0.1"
+  }
 }
