@@ -30,7 +30,7 @@ const verifyJWT = async (req, res, next) => {
 const isAdmin = async (req, res, next) => {
     if (req.user.role !== 'admin') {
         return res.status(403).json({ message: 'You are not authorized' });
-    }
+    } 
     next();
 }
 

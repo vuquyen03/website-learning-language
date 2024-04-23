@@ -8,19 +8,19 @@ import {
     DeleteButton,
 } from 'react-admin';
 
-const CourseList = () => {
-    return (
-        <List>
-            <Datagrid>
-                <TextField source="id" />
-                <TextField source="courseTitle" />
-                <TextField source="description" />
-                <DateField source="estimateTime" />
-                <EditButton basePath="/courses" />
-                <DeleteButton basePath="/courses" />
-            </Datagrid>
-        </List>
-    );
-}
+const CourseList = () => (
+
+    <List>
+        <Datagrid>
+            <TextField source="id" />
+            <TextField source="courseTitle" />
+            <TextField source="description" />
+            <DateField source="estimateTime" />
+            <EditButton basePath="/courses" />
+            <DeleteButton basePath="/courses" />
+        </Datagrid>
+    </List>
+
+)
 
 export default CourseList;

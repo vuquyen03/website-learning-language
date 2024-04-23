@@ -7,20 +7,15 @@ import simpleRestProvider from "ra-data-simple-rest";
 import CourseList from "../components/CourseList.Admin";
 import UserList from "../components/UserList.Admin";
 
-const dataProvider = simpleRestProvider("/api");
+const dataProvider = simpleRestProvider('http://localhost:5000');
 
 
-function AdminPanel() {
-    const isAdmin = true;
+const AdminPanel = () => {
 
-    if (!isAdmin) {
-        return <Navigate to="/error" state={{ message: 'Unauthorized' }} />;
-    }
     return (
-        <Admin dataProvider={dataProvider}>
-            {/* <Resource
-                name="admin"
-            /> */}
+        <Admin dataProvider={dataProvider} basename="/adminPanel">
+            <Resource
+                name="/"/>
             <Resource
                 name="users"
                 recordRepresentation="username"

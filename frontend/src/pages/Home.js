@@ -8,14 +8,6 @@ import UserStatus from '../hooks/userStatus';
 const Home = () => {
     const { loggedIn, isLoading } = UserStatus();
 
-    if (isLoading) {
-        return (
-            <div className="flex justify-center items-center h-screen">
-                <CircularProgress />
-            </div>
-        );
-    }
-
     if (loggedIn) {
         return <Navigate to="/dashboard" />;
     }

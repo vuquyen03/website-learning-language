@@ -23,7 +23,7 @@ const Profile = () => {
 
     return (
         <section
-            id="dashboard"
+            id="profile"
             className="w-full min-h-[calc(100vh-72px)] py-14">
             <div>
                 Profile

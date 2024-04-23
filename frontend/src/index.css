@@ -12,6 +12,11 @@
   @apply w-full max-w-sm h-fit flex flex-col justify-center items-center bg-white dark:bg-slate-800 px-4 py-8 sm:p-8 rounded-xl shadow-2xl;
 }
 
+.password-input {
+  @apply form-input-style w-full pl-3 pr-12 py-2 overflow-hidden;
+}
+
+
 .sidebar-btn {
   @apply p-2 xl:px-4 flex justify-center xl:justify-start items-center font-bold hover:bg-gray-200/75 dark:hover:bg-slate-700 border-2 border-transparent rounded-xl;
 }

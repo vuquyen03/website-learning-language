@@ -34,10 +34,5 @@ const socialLinks = [
   },
 ];
 
-const charBannerText = {
-  Hiragana: 'Master Japanese with the basics',
-  Katakana: 'Practice essential characters for loanwords',
-  Kanji: 'Take your mastery to the next level',
-};
 
-export { sidebarNavItems, socialLinks, charBannerText };
+export { sidebarNavItems, socialLinks };

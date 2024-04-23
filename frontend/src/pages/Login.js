@@ -6,8 +6,8 @@ import { AiOutlineLoading } from 'react-icons/ai';
 import { FaExclamationCircle } from 'react-icons/fa';
 import axios from 'axios';
 import { useDispatch, useSelector } from 'react-redux';
-
-import { checkStatus } from '../redux/actions/userActions';
+import { CircularProgress } from '@mui/material';
+import { checkStatus, setUserRole } from '../redux/actions/userActions';
 
 /**
  * Login component for user authentication.
@@ -17,21 +17,57 @@ const Login = () => {
 
     const [showPassword, setShowPassword] = useState(false);
     const [errorMessage, setErrorMessage] = useState(''); // state for displaying error message
-    const [isLoading, setIsLoading] = useState(false);
+    const [loading, setLoading] = useState(false);
+    // const [checking, setChecking] = useState(true); // State for checking login status
     const formRef = useRef(null); // Reference to the form element
-
+    const [redirectAdminPanel, setRedirectAdminPanel] = useState(false);
     const dispatch = useDispatch();
     const loggedIn = useSelector(state => state.user.loggedIn);
 
+
     useEffect(() => {
-        dispatch(checkStatus());
+        const checkLoginStatus = async () => {
+            await dispatch(checkStatus());
+            // setChecking(false); // Kết thúc quá trình kiểm tra
+        };
+
+        checkLoginStatus();
+
+        if (loggedIn) {
+            const fetchUserRole = async () => {
+                try {
+                    const response = await axios.get(`${process.env.REACT_APP_API_URL}/role`, { withCredentials: true });
+                    if (response.data.role === 'admin') {
+                        console.log('admin')
+                        setRedirectAdminPanel(true); 
+                    }
+                } catch (error) {
+                    console.error('Error fetching user role:', error);
+                }
+            };
+    
+            fetchUserRole();
+        }
     });
 
-    // console.log('Login:', loggedIn);
+    // if (checking) {
+    //     return (
+    //         <div className="flex justify-center items-center h-screen">
+    //             <CircularProgress />
+    //         </div>
+    //     )
 
-    if (loggedIn) {
+    // }
+
+
+    if (loggedIn && localStorage.getItem('userRole') === 'user') {
         return <Navigate to="/dashboard" />;
     }
+
+    if (redirectAdminPanel) {
+        return <Navigate to="/adminPanel/" />;
+    }
+
 
     const handleShowPassword = () => {
         setShowPassword(!showPassword);
@@ -43,25 +79,29 @@ const Login = () => {
         const formData = new FormData(formRef.current);
         const inputData = Object.fromEntries(formData.entries());
 
-        console.log(inputData);
-
         try {
-            setIsLoading(true); // set isLoading true before making the request
+            setLoading(true); // set loading true before making the request
             const response = await axios.post(
                 process.env.REACT_APP_API_URL + '/login',
                 inputData,
                 { withCredentials: true });
 
+            // console.log(response);
             if (response.status === 200) {
-                // setLoggedIn(true); 
-
-                console.log('Đăng nhập thành công!', response.data);
+                if(response.data.user.role === 'admin'){
+                    console.log('admin')
+                } else {
+                    const { role } = response.data.user;
+                    localStorage.setItem('userRole', role);
+                    dispatch(setUserRole(role));
+                }            
             }
-            setIsLoading(false);
+            setLoading(false);
+
         } catch (error) {
-            setIsLoading(false);
+            setLoading(false);
             switch (true) {
-                case error.message.includes('Incorrect credentials'):
+                case error.response.data.error.includes('Incorrect Email or Password'):
                     setErrorMessage('Incorrect credentials');
                     break;
                 default:
@@ -80,9 +120,9 @@ const Login = () => {
         >
             {/* Log in form */}
             <form
-                className="form-container-style"
                 ref={formRef}
                 onSubmit={handleSubmit}
+                className="form-container-style"
             >
                 <img
                     src={logo}
@@ -145,7 +185,7 @@ const Login = () => {
                     className="w-full mt-6 py-3 px-6 bg-primary hover:bg-primary-shade text-white font-bold rounded-xl"
                     type="submit"
                 >
-                    {isLoading ? <AiOutlineLoading className="animate-spin h-6 w-6 mx-auto" /> : 'Log in'}
+                    {loading ? <AiOutlineLoading className="animate-spin h-6 w-6 mx-auto" /> : 'Log in'}
                 </button>
 
 

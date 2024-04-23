@@ -9,7 +9,8 @@ import {
     forgetPassword,
     changePassword,
     updateExperience,
-    deleteAccount,
+    selfDeleteAccount,
+    adminDeleteAccount,
     refreshToken,
     checkLogin
 } from '../controllers/userController.js';
@@ -44,12 +45,21 @@ router.put('/change-password', verifyJWT, changePassword);
 // update experience
 router.put('/experience', updateExperience);
 
-// delete user
-router.delete('/dashboard', verifyJWT, isAdmin, deleteAccount);
-
 // refresh token
 router.post('/refresh-token', verifyJWT, refreshToken);
 
 // check login status
 router.get('/check-login', verifyJWT, checkLogin);
+
+// delete user
+router.delete('/users', verifyJWT, selfDeleteAccount);
+
+// delete user by admin
+router.delete('/users/:id', verifyJWT, isAdmin, adminDeleteAccount);
+
+// determine Role
+router.get('/role', verifyJWT, isAdmin, (req, res) => {
+    return res.json({ message: 'You\'re admin', role: 'admin' });
+});
+
 export default router;

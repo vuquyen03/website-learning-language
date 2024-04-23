@@ -23,9 +23,18 @@ export const register = async (req, res) => {
         }
 
         // check if user already exists
-        const user = await User.findOne({ email });
-        if (user) {
-            return res.status(400).json({ message: 'User already exists' });
+        const existingUser  = await User.findOne({ username });
+        if (existingUser) {
+            return res.status(400).json({ error: 'Username already exists', field: 'username' });
+        }
+
+        const existingEmail  = await User.findOne({ email });
+        if (existingEmail ) {
+            return res.status(400).json({ error: 'Email already exists', field: 'email' });
+        }
+
+        if (password.length < 6) {
+            return res.status(400).json({ error: 'Password must be at least 6 characters' });
         }
 
         const newUser = new User({ username, email, password });
@@ -51,16 +60,17 @@ export const login = async (req, res) => {
         // check if user exists
         const user = await User.findOne({ email });
         if (!user) {
-            return res.status(400).json({ message: 'User does not exist' });
+            return res.status(400).json({ error: 'Incorrect Email or Password' });
         }
 
         // check if password is correct
         const isMatch = await user.isCorrectPassword(password);
         if (!isMatch) {
-            return res.status(400).json({ message: 'Incorrect Email or Password' });
+            return res.status(400).json({ error: 'Incorrect Email or Password' });
         }
 
         const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user.id);
+
         // send token
         sendToken(res, user, accessToken, refreshToken, `Welcome back, ${user.username}`, 200);
 
@@ -158,7 +168,7 @@ export const updateExperience = async (req, res) => {
     
 };
 
-export const deleteAccount = async (req, res) => {
+export const selfDeleteAccount = async (req, res) => {
     try {
         await User.findByIdAndDelete(req.user._id);
         return res.status(200).json({ message: 'Account deleted successfully' });
@@ -166,6 +176,17 @@ export const deleteAccount = async (req, res) => {
         return res.status(500).json({ message: error.message });
     }
 };
+
+export const adminDeleteAccount = async (req, res) => {
+    try {
+        const userId = req.params.id;
+        await User.findByIdAndDelete(userId);
+        return res.status(200).json({ message: 'Account deleted successfully' });
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+
+}
 
 export const refreshToken = async (req, res) => {
     try {
