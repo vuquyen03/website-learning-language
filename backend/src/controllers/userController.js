@@ -118,7 +118,7 @@ export const getProfile = async (req, res) => {
     try {
         const userId = req.user._id;
         console.log(req.user);
-        const user = await User.findById(req.user._id);
+        const user = await User.findById(userId).select('-password -refreshToken');
         if (!user) {
             return res.status(400).json({ message: 'User not found' });
         }
@@ -127,6 +127,22 @@ export const getProfile = async (req, res) => {
         return res.status(500).json({ message: error.message });
     }
 };
+
+export const determineRole = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id).select('-password -refreshToken');
+        if (!user) {
+            return res.status(400).json({ message: 'User not found' });
+        }
+        if (user.role === 'user') {
+            return res.status(200).json({ message: 'You\'re user', role: 'user' });
+        } else if (user.role === 'admin') {
+            return res.status(200).json({ message: 'You\'re admin', role: 'admin' });
+        }
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+}
 
 export const updateProfile = async (req, res) => {
     

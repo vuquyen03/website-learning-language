@@ -11,47 +11,21 @@ import Leaderboards from './Leaderboards';
 import InvalidRouteHandler from './InvalidRouteHandler';
 import UserStatus from '../hooks/userStatus';
 import { CircularProgress } from '@mui/material';
-import axios from 'axios';
 import React, { useState, useEffect } from 'react';
-
+import UserRole from '../hooks/userRole';
 
 
 function MainSection() {
     const { loggedIn, isLoading } = UserStatus();
-    const [isAdmin, setIsAdmin] = useState(false);
+    const { userRole, userRoleDone } = UserRole();
 
-
-    useEffect(() => {
-        const checkRole = async () => {
-            try {
-                // Make an API call to check the user's role and determine if they are an admin
-                const response = await axios.get(`${process.env.REACT_APP_API_URL}/role`, { withCredentials: true });
-                if (response.status === 200) {
-                    setIsAdmin(response.data.role === 'admin');
-                }
-            } catch (error) {
-                // Handle any network or other errors
-                setIsAdmin(false);
-                console.error('You are not authorized to view this page // or other error');
-            }
-        };
-
-        checkRole();
-
-    }, [loggedIn]);
-
-    console.log('MainSection:', isAdmin);
-    console.log('MainSection Login:', loggedIn);
-    if (isLoading) {
-        return (
-            <div className="flex justify-center items-center h-screen">
-                <CircularProgress />
-            </div>
-        )
+    // console.log('MainSection UserRole:', userRole);
+    if (isLoading || !userRoleDone) {
+        return null
     }
     return (
         <>
-            {loggedIn && <Sidebar />}
+            {loggedIn && userRole === 'user' && <Sidebar />}
             <div>
                 {!loggedIn && <Header />}
                 <main>
@@ -60,7 +34,7 @@ function MainSection() {
                         <Route path="/login" element={<Login />} />
                         <Route path="/signup" element={<Signup />} />
 
-                        {!isAdmin && (
+                        {userRole !=='admin' && (
                             <>
                                 <Route path="/dashboard" element={<Dashboard />} />
                                 <Route path="/leaderboards" element={<Leaderboards />} />
@@ -69,10 +43,10 @@ function MainSection() {
                         )}
 
                         {/* Protected routes */}
-                        {loggedIn && isAdmin && <Route path="/adminPanel/*" element={<AdminPanel />} />}
+                        {loggedIn && userRole === 'admin' && <Route path="/adminPanel/*" element={<AdminPanel />} />}
 
                         {/* Invalid routes */}
-                        {/* <Route path="*" element={<InvalidRouteHandler />} /> */}
+                        <Route path="*" element={<InvalidRouteHandler />} />
                     </Routes>
                 </main>
             </div>

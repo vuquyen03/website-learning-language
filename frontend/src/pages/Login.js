@@ -7,67 +7,57 @@ import { FaExclamationCircle } from 'react-icons/fa';
 import axios from 'axios';
 import { useDispatch, useSelector } from 'react-redux';
 import { CircularProgress } from '@mui/material';
-import { checkStatus, setUserRole } from '../redux/actions/userActions';
+import { checkStatus, setUserRole, checkRole } from '../redux/actions/userActions';
 
 /**
  * Login component for user authentication.
  * @returns The login form.
  */
 const Login = () => {
-
     const [showPassword, setShowPassword] = useState(false);
     const [errorMessage, setErrorMessage] = useState(''); // state for displaying error message
     const [loading, setLoading] = useState(false);
-    // const [checking, setChecking] = useState(true); // State for checking login status
+    const [checking, setChecking] = useState(true); // State for checking login status
     const formRef = useRef(null); // Reference to the form element
     const [redirectAdminPanel, setRedirectAdminPanel] = useState(false);
     const dispatch = useDispatch();
     const loggedIn = useSelector(state => state.user.loggedIn);
+    const userRole = useSelector(state => state.user.userRole);
 
 
     useEffect(() => {
+        const fetchUserRole = async () => {
+            await dispatch(checkRole());
+            setRedirectAdminPanel(true);
+        };
+
         const checkLoginStatus = async () => {
             await dispatch(checkStatus());
-            // setChecking(false); // Kết thúc quá trình kiểm tra
+            setChecking(false); // Kết thúc quá trình kiểm tra
         };
 
         checkLoginStatus();
 
         if (loggedIn) {
-            const fetchUserRole = async () => {
-                try {
-                    const response = await axios.get(`${process.env.REACT_APP_API_URL}/role`, { withCredentials: true });
-                    if (response.data.role === 'admin') {
-                        console.log('admin')
-                        setRedirectAdminPanel(true); 
-                    }
-                } catch (error) {
-                    console.error('Error fetching user role:', error);
-                }
-            };
-    
             fetchUserRole();
         }
     });
 
-    // if (checking) {
-    //     return (
-    //         <div className="flex justify-center items-center h-screen">
-    //             <CircularProgress />
-    //         </div>
-    //     )
+    if (checking) {
+        return (
+            <div className="flex justify-center items-center h-screen">
+                <CircularProgress />
+            </div>
+        )
 
-    // }
+    }
 
-
-    if (loggedIn && localStorage.getItem('userRole') === 'user') {
+    console.log('login', redirectAdminPanel, userRole);
+    if (loggedIn && userRole !== 'admin') {
         return <Navigate to="/dashboard" />;
+    } else if (redirectAdminPanel && userRole === 'admin') {
+        return <Navigate to="/adminPanel" />;
     }
-
-    if (redirectAdminPanel) {
-        return <Navigate to="/adminPanel/" />;
-    }
-
 
     const handleShowPassword = () => {
         setShowPassword(!showPassword);
@@ -86,15 +76,12 @@ const Login = () => {
                 inputData,
                 { withCredentials: true });
 
-            // console.log(response);
             if (response.status === 200) {
-                if(response.data.user.role === 'admin'){
-                    console.log('admin')
-                } else {
-                    const { role } = response.data.user;
-                    localStorage.setItem('userRole', role);
-                    dispatch(setUserRole(role));
-                }            
+                dispatch(setUserRole(response.data.user.role));
+                console.log(response.data.user.role);
+                if (response.data.role === 'admin') {
+                    setRedirectAdminPanel(true);
+                }
             }
             setLoading(false);
 

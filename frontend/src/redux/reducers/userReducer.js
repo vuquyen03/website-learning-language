@@ -2,7 +2,7 @@ import { createReducer } from "@reduxjs/toolkit";
 
 const initialState = { 
   loggedIn: false,
-  userRole: localStorage.getItem('userRole') || null
+  userRole: null
 };
 
 export const userReducer = createReducer(initialState, (builder) => {

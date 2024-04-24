@@ -28,8 +28,7 @@ export const logout = () => async dispatch => {
         const response = await axios.post(`${process.env.REACT_APP_API_URL}/logout`, null, { withCredentials: true });
         if (response.status === 200) {
             dispatch(setLoggedIn(false));
-            dispatch(setUserRole(null)); // Xóa vai trò của người dùng trong Redux
-            localStorage.removeItem('userRole'); // Xóa vai trò của người dùng khỏi localStorage
+            dispatch(setUserRole(null)); // Clear user role
         }
     } catch (error) {
         console.log('Error logging out:', error);

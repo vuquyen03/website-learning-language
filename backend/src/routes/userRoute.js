@@ -5,6 +5,7 @@ import {
     logout,
     getAllUser,
     getProfile,
+    determineRole,
     updateProfile,
     forgetPassword,
     changePassword,
@@ -58,8 +59,7 @@ router.delete('/users', verifyJWT, selfDeleteAccount);
 router.delete('/users/:id', verifyJWT, isAdmin, adminDeleteAccount);
 
 // determine Role
-router.get('/role', verifyJWT, isAdmin, (req, res) => {
-    return res.json({ message: 'You\'re admin', role: 'admin' });
-});
+router.get('/role', verifyJWT, determineRole);
+
 
 export default router;

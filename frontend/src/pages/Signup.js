@@ -4,8 +4,7 @@ import { Link, Navigate } from 'react-router-dom';
 import Button from '@mui/material/Button';
 import { useDispatch, useSelector } from 'react-redux';
 import axios from 'axios';
-import { checkStatus } from '../redux/actions/userActions';
-import { setUserRole } from '../redux/actions/userActions';
+import { checkStatus, setUserRole } from '../redux/actions/userActions';
 import { HiEye, HiEyeOff } from 'react-icons/hi';
 import { AiOutlineLoading } from 'react-icons/ai';
 
@@ -52,9 +51,8 @@ const Signup = () => {
             console.log(response);
             if (response.status === 201) {
                 // Set user role in Redux
-                const { role } = response.data.user;
-                localStorage.setItem('userRole', role);
-                dispatch(setUserRole(role));
+                dispatch(setUserRole(response.data.user.role));
+                console.log(response.data.user.role);
             }
             setIsLoading(false);
         } catch (error) {
