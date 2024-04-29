@@ -43,16 +43,17 @@ const Login = () => {
         }
     });
 
-    if (checking) {
-        return (
-            <div className="flex justify-center items-center h-screen">
-                <CircularProgress />
-            </div>
-        )
+    // if (checking) {
+    //     return (
+    //         <div className="flex justify-center items-center h-screen">
+    //             <CircularProgress />
+    //         </div>
+    //     )
 
-    }
+    // }
 
-    console.log('login', redirectAdminPanel, userRole);
+    // console.log('login', redirectAdminPanel, userRole);
+    
     if (loggedIn && userRole !== 'admin') {
         return <Navigate to="/dashboard" />;
     } else if (redirectAdminPanel && userRole === 'admin') {
@@ -72,7 +73,7 @@ const Login = () => {
         try {
             setLoading(true); // set loading true before making the request
             const response = await axios.post(
-                process.env.REACT_APP_API_URL + '/login',
+                process.env.REACT_APP_API_URL + '/user/login',
                 inputData,
                 { withCredentials: true });
 

@@ -14,7 +14,7 @@ export const setUserRole = (role) => ({
 
 export const checkStatus = () => async dispatch => {
     try {
-        const response = await axios.get(`${process.env.REACT_APP_API_URL}/check-login`, { withCredentials: true });
+        const response = await axios.get(process.env.REACT_APP_API_URL + '/user/check-login', { withCredentials: true });
         if (response.status === 200) {
             dispatch(setLoggedIn(true));
         }
@@ -25,7 +25,7 @@ export const checkStatus = () => async dispatch => {
 
 export const logout = () => async dispatch => {
     try {
-        const response = await axios.post(`${process.env.REACT_APP_API_URL}/logout`, null, { withCredentials: true });
+        const response = await axios.post(process.env.REACT_APP_API_URL + '/user/logout', null, { withCredentials: true });
         if (response.status === 200) {
             dispatch(setLoggedIn(false));
             dispatch(setUserRole(null)); // Clear user role
@@ -38,7 +38,7 @@ export const logout = () => async dispatch => {
 
 export const checkRole = () => async dispatch => {
     try {
-        const response = await axios.get(`${process.env.REACT_APP_API_URL}/role`, { withCredentials: true });
+        const response = await axios.get(process.env.REACT_APP_API_URL + '/user/role', { withCredentials: true });
         if (response.status === 200) {
             dispatch(setUserRole(response.data.role));
         }

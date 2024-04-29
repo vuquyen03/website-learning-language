@@ -7,14 +7,6 @@ import { Navigate } from "react-router-dom";
 const Leaderboards = () => {
     const { loggedIn, isLoading } = UserStatus();
 
-    if (isLoading) {
-        return (
-            <div className="flex justify-center items-center h-screen">
-                <CircularProgress />
-            </div>
-        );
-    }
-
     if (!loggedIn) {
         return <Navigate to="/login" />;
     }

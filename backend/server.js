@@ -29,8 +29,7 @@ const PORT = process.env.PORT || 5000;
 connectDB(process.env.MONGODB_URI);
 
 // Routes
-app.use('/api/v1', user);
-// app.use('/api/v1', admin);
+app.use('/api/v1/user', user);
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
