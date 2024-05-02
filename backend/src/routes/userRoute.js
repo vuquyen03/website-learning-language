@@ -47,7 +47,7 @@ router.put('/change-password', verifyJWT, changePassword);
 router.put('/experience', updateExperience);
 
 // refresh token
-router.post('/refresh-token', verifyJWT, refreshToken);
+router.post('/refresh-token', refreshToken);
 
 // check login status
 router.get('/check-login', verifyJWT, checkLogin);
@@ -56,10 +56,13 @@ router.get('/check-login', verifyJWT, checkLogin);
 router.delete('/users', verifyJWT, selfDeleteAccount);
 
 // delete user by admin
-router.delete('/users/:id', verifyJWT, isAdmin, adminDeleteAccount);
+router.delete('/delete/:id', verifyJWT, isAdmin, adminDeleteAccount);
 
 // determine Role
 router.get('/role', verifyJWT, determineRole);
+
+// edit user by admin
+router.put('/edit/:id', verifyJWT, isAdmin, updateProfile);
 
 
 export default router;

@@ -105,14 +105,26 @@ export const logout = async (req, res) => {
 export const getAllUser = async (req, res) => {
     try {
         const users = await User.find().select('-password -refreshToken');
-        if (!users) {
-            return res.status(400).json({ message: 'User not found' });
+        if (!users || users.length === 0) { // Check if users array is empty
+            return res.status(404).json({ message: 'No users found' });
         }
-        return res.status(200).json({ users });
+
+        // Pagination
+        const page = parseInt(req.query.page) || 1;
+        const perPage = parseInt(req.query.perPage) || 10;
+        const startIndex = (page - 1) * perPage;
+        const endIndex = page * perPage;
+        const total = users.length;
+
+        // Create data for the current page
+        const data = users.slice(startIndex, endIndex);
+
+        return res.status(200).json({ items: data, page, perPage, total });
     } catch (error) {
         return res.status(500).json({ message: error.message });
     }
 };
+
 
 export const getProfile = async (req, res) => {
     try {
@@ -206,25 +218,25 @@ export const adminDeleteAccount = async (req, res) => {
 
 export const refreshToken = async (req, res) => {
     try {
-        const oldRefreshToken = req.cookies.refreshToken;
-        if (!oldRefreshToken) {
+        const refreshToken = req.cookies.refreshToken;
+        if (!refreshToken) {
             return res.status(403).json({ message: 'User not authenticated' });
         }
 
-        const decoded = jwt.verify(oldRefreshToken, process.env.REFRESH_TOKEN_SECRET);
+        const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
         const user = await User.findById(decoded._id);
         if (!user) {
             return res.status(403).json({ message: 'User not authenticated' });
         }
 
-        if (user.refreshToken !== oldRefreshToken) {
+        if (user.refreshToken !== refreshToken) {
             return res.status(403).json({ message: 'Refresh token not valid' });
         }
         // console.log("Old RefreshToken", user.refreshToken);
 
 
-        const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id);
-        sendToken(res, user, accessToken, refreshToken, 'Token Refreshed Successfully', 200);
+        const newAccessToken = await user.generateAccessToken();
+        sendToken(res, user, newAccessToken, refreshToken, 'Token Refreshed Successfully', 200);
 
     } catch (error) {
         return res.status(500).json({ message: error.message });

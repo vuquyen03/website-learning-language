@@ -12,7 +12,12 @@ const courseSchema = new Schema({
         trim: true,
     },
     estimatedTime: {
-        type: String,
+        type: Number,
+        min: 0,
+        validate: {
+            validator: Number.isInteger,
+            message: '{VALUE} is not an integer value.',
+        },
         trim: true,
     },
     quiz: [

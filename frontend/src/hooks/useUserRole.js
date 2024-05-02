@@ -7,21 +7,25 @@ import { checkRole } from '../redux/actions/userActions';
  * @returns userRole and userRoleDone status.
  */
 
-const UserRole = () => {
+const useUserRole = () => {
     const userRole = useSelector(state => state.user.userRole);
     const [userRoleDone, setUserRoleDone] = useState(false);
     const dispatch = useDispatch();
 
     useEffect(() => {
-        dispatch(checkRole()).then
-            (() => {
+        const fetchData = async () => {
+            try {
+                await dispatch(checkRole());
                 setUserRoleDone(true);
-            });
-    }
+            } catch (error) {
+                console.error('Error checking role:', error);
+            }
+        };
 
-        , [dispatch]);
+        fetchData();
+    }, [dispatch]);
 
     return { userRole, userRoleDone };
 }
 
-export default UserRole;
+export default useUserRole;

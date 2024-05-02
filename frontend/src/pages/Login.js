@@ -8,7 +8,7 @@ import axios from 'axios';
 import { useDispatch, useSelector } from 'react-redux';
 import { CircularProgress } from '@mui/material';
 import { checkStatus, setUserRole, checkRole } from '../redux/actions/userActions';
-
+import { jwtDecode } from "jwt-decode";
 /**
  * Login component for user authentication.
  * @returns The login form.
@@ -51,13 +51,11 @@ const Login = () => {
     //     )
 
     // }
-
-    // console.log('login', redirectAdminPanel, userRole);
     
     if (loggedIn && userRole !== 'admin') {
         return <Navigate to="/dashboard" />;
     } else if (redirectAdminPanel && userRole === 'admin') {
-        return <Navigate to="/adminPanel" />;
+        return <Navigate to="/adminPanel/home" />;
     }
 
     const handleShowPassword = () => {
@@ -78,6 +76,8 @@ const Login = () => {
                 { withCredentials: true });
 
             if (response.status === 200) {
+                const expirationTime = jwtDecode(response.data.accessToken).exp;
+                localStorage.setItem('expirationTime', expirationTime);
                 dispatch(setUserRole(response.data.user.role));
                 console.log(response.data.user.role);
                 if (response.data.role === 'admin') {

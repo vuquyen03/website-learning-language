@@ -4,6 +4,7 @@ import path from 'path';
 import connectDB from './src/config/connection.js';
 import cors from 'cors';
 import user from './src/routes/userRoute.js';
+import course from './src/routes/courseRoute.js';
 import cookieParser from 'cookie-parser';
 
 
@@ -30,6 +31,7 @@ connectDB(process.env.MONGODB_URI);
 
 // Routes
 app.use('/api/v1/user', user);
+app.use('/api/v1/course', course);
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);

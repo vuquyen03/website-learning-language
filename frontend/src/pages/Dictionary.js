@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import UserStatus from '../hooks/userStatus';
+import useUserStatus from '../hooks/useUserStatus';
 import axios from 'axios';
 
 const Dictionary = () => {
-    const { loggedIn } = UserStatus();
+    const { loggedIn } = useUserStatus();
     const [searchTerm, setSearchTerm] = useState('');
     const [meanings, setMeanings] = useState({});
     const [pronunciation, setPronunciation] = useState([]);
@@ -100,7 +100,7 @@ const Dictionary = () => {
                 </div>
             </form>
 
-            <div className="max-w-3xl">
+            <div className="max-w-4xl">
 
                 {meanings.length > 0 ? (
                     <div className="mt-4">

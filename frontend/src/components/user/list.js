@@ -8,8 +8,8 @@ import {
     DeleteButton,
 } from 'react-admin';
 
-const UserList = () => (
-    <List>
+const UserList = (props) => (
+    <List {...props}>
         <Datagrid>
             <TextField source="id" />
             <TextField source="username" />
@@ -17,8 +17,8 @@ const UserList = () => (
             <TextField source="role" />
             <TextField source="experience" />
             <DateField source="createdAt" />
-            <EditButton basePath="/users" />
-            <DeleteButton basePath="/users" />
+            <EditButton basepath="/users" />
+            <DeleteButton basepath="/users" />
         </Datagrid>
     </List>
 );

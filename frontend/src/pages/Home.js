@@ -1,15 +1,27 @@
 import { CircularProgress, Button, Stack } from '@mui/material';
 import { Navigate, Link } from 'react-router-dom';
 import countryLogo from '../assets/HomePage.png';
-import UserStatus from '../hooks/userStatus';
-
-
+import useUserStatus from '../hooks/useUserStatus';
+import useUserRole from '../hooks/useUserRole';
 
 const Home = () => {
-    const { loggedIn, isLoading } = UserStatus();
+    const { loggedIn, isLoading } = useUserStatus();
+    const { userRole, userRoleDone } = useUserRole();
 
-    if (loggedIn) {
+    if (isLoading || !userRoleDone) {
+        return (
+            <div className="w-full h-screen flex justify-center items-center">
+                <CircularProgress />
+            </div>
+        );
+    }
+
+    if (loggedIn && userRole === 'user' && userRoleDone) {
         return <Navigate to="/dashboard" />;
+    }
+
+    if (userRole === 'admin' && userRoleDone) {
+        return <Navigate to="/adminPanel/home" />;
     }
 
     return (

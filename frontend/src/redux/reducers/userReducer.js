@@ -2,7 +2,8 @@ import { createReducer } from "@reduxjs/toolkit";
 
 const initialState = { 
   loggedIn: false,
-  userRole: null
+  userRole: null,
+  expirationTime: localStorage.getItem("expirationTime") || null,
 };
 
 export const userReducer = createReducer(initialState, (builder) => {
@@ -12,5 +13,8 @@ export const userReducer = createReducer(initialState, (builder) => {
     })
     .addCase("SET_USER_ROLE", (state, action) => {
       state.userRole = action.payload;
+    })
+    .addCase("SET_EXPIRATION_TIME", (state, action) => {
+      state.expirationTime = action.payload;
     });
 });

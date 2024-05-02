@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { CircularProgress } from '@mui/material';
-import {  useDispatch, useSelector } from 'react-redux';
-import { checkStatus } from '../redux/actions/userActions';
-import UserStatus from '../hooks/userStatus';
+import useUserStatus from '../hooks/useUserStatus';
 
 const Profile = () => {
-    const { loggedIn, isLoading } = UserStatus();
+    const { loggedIn, isLoading } = useUserStatus();
 
     if (isLoading) {
         return (

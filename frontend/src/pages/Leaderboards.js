@@ -1,11 +1,10 @@
 import React from "react";
-import UserStatus from "../hooks/userStatus";
-import { CircularProgress } from '@mui/material';
+import useUserStatus from "../hooks/useUserStatus";
 import { Navigate } from "react-router-dom";
 
 
 const Leaderboards = () => {
-    const { loggedIn, isLoading } = UserStatus();
+    const { loggedIn, isLoading } = useUserStatus();
 
     if (!loggedIn) {
         return <Navigate to="/login" />;

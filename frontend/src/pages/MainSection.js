@@ -10,24 +10,29 @@ import Profile from './Profile';
 import Dictionary from './Dictionary';
 import Leaderboards from './Leaderboards';
 import InvalidRouteHandler from './InvalidRouteHandler';
-import UserStatus from '../hooks/userStatus';
+import useUserStatus from '../hooks/useUserStatus';
 import { CircularProgress } from '@mui/material';
 import React, { useState, useEffect } from 'react';
-import UserRole from '../hooks/userRole';
-
+import useUserRole from '../hooks/useUserRole';
+import useAccessTokenWithRefresh from '../hooks/useAccessTokenWithRefresh';
 
 function MainSection() {
-    const { loggedIn, isLoading } = UserStatus();
-    const { userRole, userRoleDone } = UserRole();
+    const { loggedIn, isLoading } = useUserStatus();
+    const { userRole, userRoleDone } = useUserRole();
     const quizLocation = useLocation().pathname.includes('/quiz');
     const { pathname } = useLocation();
+
+    // use this hook to refresh the access token when it is about to expire
+    useAccessTokenWithRefresh();
 
     useEffect(() => {
         // Scroll to the top of the page on route change
         window.scrollTo(0, 0);
-      }, [pathname]);
+    }, [pathname]);
 
-    // console.log('MainSection UserRole:', userRole);
+    // console.log("current Time", new Date(Date.now()));
+    console.log("loggedIn", loggedIn);
+    // console.log("userRole", userRole);
     if (isLoading || !userRoleDone) {
         return null
     }
@@ -35,7 +40,7 @@ function MainSection() {
         <>
             {loggedIn && userRole === 'user' && <Sidebar />}
             <div
-                className={`overflow-x-hidden overflow-y-auto flex flex-col ${loggedIn ? (quizLocation ? '' : 'mb-20 sm:mb-0 sm:ms-[88px] xl:ms-[300px]') : ''
+                className={`overflow-x-hidden overflow-y-auto flex flex-col ${loggedIn && userRole === 'user' ? (quizLocation ? '' : 'mb-20 sm:mb-0 sm:ms-[88px] xl:ms-[300px]') : ''
                     }`}>
                 {!loggedIn && <Header />}
                 <main>
