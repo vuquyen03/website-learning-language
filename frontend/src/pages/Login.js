@@ -55,7 +55,7 @@ const Login = () => {
     if (loggedIn && userRole !== 'admin') {
         return <Navigate to="/dashboard" />;
     } else if (redirectAdminPanel && userRole === 'admin') {
-        return <Navigate to="/adminPanel/home" />;
+        return <Navigate to="/adminPanel" />;
     }
 
     const handleShowPassword = () => {
@@ -73,7 +73,8 @@ const Login = () => {
             const response = await axios.post(
                 process.env.REACT_APP_API_URL + '/user/login',
                 inputData,
-                { withCredentials: true });
+                { withCredentials: true }
+            );
 
             if (response.status === 200) {
                 const expirationTime = jwtDecode(response.data.accessToken).exp;

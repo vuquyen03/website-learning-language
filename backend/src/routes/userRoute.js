@@ -3,8 +3,10 @@ import {
     register,
     login,
     logout,
-    getAllUser,
+    getUserReference,
+    getAllUsers,
     getProfile,
+    getUserById,
     determineRole,
     updateProfile,
     forgetPassword,
@@ -12,6 +14,8 @@ import {
     updateExperience,
     selfDeleteAccount,
     adminDeleteAccount,
+    adminDeleteManyAccount,
+    adminChangeUserRoleAndExperience,
     refreshToken,
     checkLogin
 } from '../controllers/userController.js';
@@ -19,50 +23,58 @@ import { verifyJWT, isAdmin } from '../middlewares/auth/auth.js';
 
 const router = express.Router();
 
-// register user
+// REGISTER USER
 router.post('/register', register);
 
-// login user
+// LOGIN USER
 router.post('/login', login);
 
-// logout user
+// LOGOUT USER
 router.post('/logout', verifyJWT, logout);
 
-// get all users
-router.get('/', getAllUser);
-
-// get user profile
+// GET USER PROFILE
 router.get('/profile', verifyJWT, getProfile);
 
-// update user profile
-router.put('/profile', updateProfile);
+// UPDATE USER PROFILE
+router.put('/profile', verifyJWT, updateProfile);
 
-// forget password
+// FORGET PASSWORD
 router.post('/forget-password', forgetPassword);
 
-// change password
+// CHANGE PASSWORD
 router.put('/change-password', verifyJWT, changePassword);
 
-// update experience
+// UPDATE EXPERIENCE
 router.put('/experience', updateExperience);
 
-// refresh token
+// REFRESH TOKEN
 router.post('/refresh-token', refreshToken);
 
-// check login status
-router.get('/check-login', verifyJWT, checkLogin);
-
-// delete user
-router.delete('/users', verifyJWT, selfDeleteAccount);
-
-// delete user by admin
-router.delete('/delete/:id', verifyJWT, isAdmin, adminDeleteAccount);
-
-// determine Role
+// DETERMINE ROLE
 router.get('/role', verifyJWT, determineRole);
 
-// edit user by admin
-router.put('/edit/:id', verifyJWT, isAdmin, updateProfile);
+// GET ALL USERS
+router.get('/all', verifyJWT, getAllUsers);
 
+// CHECK LOGIN STATUS
+router.get('/check-login', verifyJWT, checkLogin);
+
+// GET USER REFERENCE
+router.get('/', verifyJWT, isAdmin, getUserReference);
+
+// DELETE USER
+router.delete('/users', verifyJWT, selfDeleteAccount);
+
+// DELETE USER BY ADMIN
+router.delete('/delete/:id', verifyJWT, isAdmin, adminDeleteAccount);
+
+// DELETE MANY USERS BY ADMIN
+router.delete('/deleteMany', verifyJWT, isAdmin, adminDeleteManyAccount);
+
+// EDIT USER ROLE AND EXPERIENCE BY ADMIN
+router.put('/edit/:id', verifyJWT, isAdmin, adminChangeUserRoleAndExperience);
+
+// GET USER BY ID
+router.get('/:id', verifyJWT, isAdmin, getUserById);
 
 export default router;

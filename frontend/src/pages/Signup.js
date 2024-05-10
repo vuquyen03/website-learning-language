@@ -50,7 +50,7 @@ const Signup = () => {
             console.log(response);
             if (response.status === 201) {
                 // Set user role in Redux
-                dispatch(setUserRole(response.data.user.role));
+                await dispatch(setUserRole(response.data.user.role));
                 console.log(response.data.user.role);
             }
             setIsLoading(false);

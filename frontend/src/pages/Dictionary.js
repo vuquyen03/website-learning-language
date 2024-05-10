@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import useUserStatus from '../hooks/useUserStatus';
 import axios from 'axios';
+import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 
 const Dictionary = () => {
     const { loggedIn } = useUserStatus();
@@ -10,6 +11,7 @@ const Dictionary = () => {
     const [pronunciation, setPronunciation] = useState([]);
     const [word, setWord] = useState('');
     const [error, setError] = useState(false);
+    const [audio, setAudio] = useState('');
     const [submitValue, setSubmitValue] = useState(''); // State for displaying the search term
 
     const handleInputChange = (e) => {
@@ -30,7 +32,7 @@ const Dictionary = () => {
                 setWord(data[0].word);
                 const meaningsByPartOfSpeech = {};
                 const pronunciationSet = new Set();
-                console.log(pronunciationSet);
+                const audioSet = new Set();
 
                 for (let i = 0; i < data.length; i++) {
                     for (let j = 0; j < data[i].meanings.length; j++) {
@@ -51,14 +53,18 @@ const Dictionary = () => {
                         if (phonetic.text) {
                             pronunciationSet.add(phonetic.text);
                         }
+                        if (phonetic.audio) {
+                            audioSet.add(phonetic.audio);
+                        }
                     });
                 }
 
                 // Chuyển đổi đối tượng meaningsByPartOfSpeech thành mảng newMeanings
                 const newMeanings = Object.values(meaningsByPartOfSpeech);
-
+                
                 setMeanings(newMeanings);
                 setPronunciation(Array.from(pronunciationSet));
+                setAudio(Array.from(audioSet));
                 setError(false);
             } catch (error) {
                 setWord('');
@@ -68,6 +74,16 @@ const Dictionary = () => {
             } finally {
                 setSearchTerm('');
             }
+        }
+    };
+
+    const playAudio = async () => {
+        if (audio.length > 0) {
+            const audioUrl = audio[0];
+            const audioElement = new Audio(audioUrl);
+            audioElement.play();
+        } else {
+            console.error('No audio found for the word.');
         }
     };
 
@@ -104,8 +120,9 @@ const Dictionary = () => {
 
                 {meanings.length > 0 ? (
                     <div className="mt-4">
-                        <div className="flex justify-end flex-col items-end">
-                            <h2 className="text-4xl font-semibold text-teal-500">{word}</h2>
+                        <div className="flex justify-end flex-col items-start mb-3">
+                            <h2 className="text-5xl font-semibold text-teal-500">{word}</h2>
+                            <VolumeUpIcon className="text-teal-700 cursor-pointer" onClick={playAudio} />
                             {pronunciation.map((pron, index) => (
                                 <span key={index} className="text-gray-500 text-sm">{pron}</span>
                             ))}

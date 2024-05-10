@@ -11,7 +11,6 @@ import Dictionary from './Dictionary';
 import Leaderboards from './Leaderboards';
 import InvalidRouteHandler from './InvalidRouteHandler';
 import useUserStatus from '../hooks/useUserStatus';
-import { CircularProgress } from '@mui/material';
 import React, { useState, useEffect } from 'react';
 import useUserRole from '../hooks/useUserRole';
 import useAccessTokenWithRefresh from '../hooks/useAccessTokenWithRefresh';
@@ -31,7 +30,7 @@ function MainSection() {
     }, [pathname]);
 
     // console.log("current Time", new Date(Date.now()));
-    console.log("loggedIn", loggedIn);
+    // console.log("loggedIn", loggedIn);
     // console.log("userRole", userRole);
     if (isLoading || !userRoleDone) {
         return null

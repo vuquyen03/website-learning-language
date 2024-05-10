@@ -6,15 +6,23 @@ const quizSchema = new Schema({
         required: true,
         trim: true,
     },
-    course: {
-        type: Schema.Types.ObjectId,
-        ref: 'Course',
-    },
+    course: [
+        {
+            type: Schema.Types.ObjectId,
+            ref: 'Course',
+        }
+    ],
     description: {
         type: String,
         required: true,
         trim: true,
     },
+    question: [
+        {
+            type: Schema.Types.ObjectId,
+            ref: 'Question',
+        }
+    ],
 });
 
 const Quiz = model("Quiz", quizSchema);

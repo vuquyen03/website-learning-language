@@ -1,4 +1,3 @@
-import { create } from "@mui/material/styles/createTransitions";
 import axios from "axios";
 
 const apiUrl = process.env.REACT_APP_API_URL;
@@ -34,7 +33,6 @@ export default {
             });
             
             console.log(response);
-
             return { data: { ...response.data, id: response.data._id } };
         } catch (error) {
             throw new Error(error.response.data.message || error.message);
@@ -46,8 +44,27 @@ export default {
             const response = await axios.get(`${apiUrl}/${resource}/${id}`, {
                 withCredentials: true,
             });
+            console.log("GetOne:", response);
 
             return { data: { ...response.data, id: response.data._id } };
+        } catch (error) {
+            throw new Error(error.response.data.message || error.message);
+        }
+    },
+    getMany: async (resource, params) => {
+        try {
+            const { ids } = params;
+            console.log("getMany:", {ids});
+    
+            const response = await axios.get(`${apiUrl}/${resource}/many`, {
+                params: { ids },
+                withCredentials: true,
+            });            
+            
+            console.log("GetMany", response);
+            // console.log(response.data.items);
+
+            return { data: response.data.items.map(item => ({ ...item, id: item._id })) };
         } catch (error) {
             throw new Error(error.response.data.message || error.message);
         }
@@ -60,7 +77,6 @@ export default {
             });
 
             console.log(response);
-
             return { data: { ...response.data, id: response.data._id } };
         } catch (error) {
             throw new Error(error.response.data.message || error.message);
@@ -74,8 +90,24 @@ export default {
             });
             
             console.log(response);
-
             return { data: { id } };
+        } catch (error) {
+            throw new Error(error.response.data.message || error.message);
+        }
+    },
+    deleteMany: async (resource, params) => {
+        try {
+            const { ids } = params;
+            const response = await axios.delete(`${apiUrl}/${resource}/deleteMany`, {
+                data: { ids },
+                withCredentials: true,
+            });
+
+            console.log(response);
+
+            const deletedItems = ids.map(id => ({ id }));
+            return { data: deletedItems };
+
         } catch (error) {
             throw new Error(error.response.data.message || error.message);
         }

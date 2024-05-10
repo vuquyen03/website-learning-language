@@ -1,25 +1,28 @@
-import {
-    Datagrid,
-    List,
-    NumberField,
-    ReferenceField,
-    EditButton,
-    TextField,
-    DeleteButton
-} from "react-admin";
+import { Datagrid, List, EditButton, TextField, DeleteButton, SimpleList } from 'react-admin';
+import { useMediaQuery, Theme } from "@mui/material";
 
-const ChallengeList = () => {
-    return (
-        <List>
-        <Datagrid>
-            <TextField source="id" />
-            <TextField source="level" />
-            <TextField source="description" />     
-            <EditButton basepath="/quizzes" />
-            <DeleteButton basepath="/quizzes" />
+
+const QuizList = () => {
+  const isSmall = useMediaQuery((theme) => theme.breakpoints.down("sm"));
+
+  return (
+    <List>
+      {isSmall ? (
+        <SimpleList
+          primaryText={(record) => record.title}
+          secondaryText={(record) => record.description}
+        />
+      ) : (
+        <Datagrid rowClick="edit">
+          <TextField source="id" />
+          <TextField source="title" />
+          <TextField source="description" />
+          <EditButton basepath="/quizzes" />
+          <DeleteButton basepath="/quizzes" />
         </Datagrid>
+      )}
     </List>
-    );
+  );
 };
 
-export default ChallengeList;
+export default QuizList;

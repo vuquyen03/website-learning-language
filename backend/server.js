@@ -1,10 +1,11 @@
 import express from 'express'; 
 import * as dotenv from 'dotenv';
-import path from 'path';
 import connectDB from './src/config/connection.js';
 import cors from 'cors';
 import user from './src/routes/userRoute.js';
 import course from './src/routes/courseRoute.js';
+import quiz from './src/routes/quizRoute.js';
+import question from './src/routes/questionRoute.js';
 import cookieParser from 'cookie-parser';
 
 
@@ -32,6 +33,9 @@ connectDB(process.env.MONGODB_URI);
 // Routes
 app.use('/api/v1/user', user);
 app.use('/api/v1/course', course);
+app.use('/api/v1/quiz', quiz);
+app.use('/api/v1/question', question);  
+
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);

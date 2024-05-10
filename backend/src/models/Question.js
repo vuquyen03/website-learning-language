@@ -6,11 +6,18 @@ const questionSchema = new Schema({
         required: true,
         trim: true,
     },
-    answer: {
+    correctOption: {
         type: String,
         required: true,
         trim: true,
     },
+    incorrectOptions: [
+        {
+            type: String,
+            required: true,
+            trim: true,
+        }
+    ],
     quiz: {
         type: Schema.Types.ObjectId,
         ref: 'Quiz',

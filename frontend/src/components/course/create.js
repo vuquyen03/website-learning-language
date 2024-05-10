@@ -1,13 +1,11 @@
-import { SimpleForm, Create, required, TextInput, NumberInput } from 'react-admin';
+import { SimpleForm, Create, required, TextInput} from 'react-admin';
 
-const CourseCreate = (props) => {
+const CourseCreate = () => {
     return (
-        <Create {...props}>
+        <Create>
             <SimpleForm>
                 <TextInput source="courseTitle" validate={required()} />
                 <TextInput source="description" validate={required()} />
-                <NumberInput source="estimatedTime" validate={required()} />
-                <TextInput source="level" validate={required()} />
             </SimpleForm>
         </Create>
     )

@@ -102,7 +102,13 @@ export const logout = async (req, res) => {
     }   
 };
 
-export const getAllUser = async (req, res) => {
+/**
+ * This function retrieves user references.
+ * @param {*} req 
+ * @param {*} res 
+ */
+
+export const getUserReference = async (req, res) => {
     try {
         const users = await User.find().select('-password -refreshToken');
         if (!users || users.length === 0) { // Check if users array is empty
@@ -124,6 +130,34 @@ export const getAllUser = async (req, res) => {
         return res.status(500).json({ message: error.message });
     }
 };
+
+export const getAllUsers = async (req, res) => {
+    try {
+        const users = await User.find().select('-password -refreshToken');
+        if (!users || users.length === 0) {
+            return res.status(404).json({ message: 'No users found' });
+        }
+
+        const total = users.length;
+
+        return res.status(200).json({ items: users, total });
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+};
+
+export const getUserById = async (req, res) => {
+    try {
+        const userId = req.params.id;
+        const user = await User.findById(userId).select('-password -refreshToken');
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        return res.status(200).json(user);
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+}
 
 
 export const getProfile = async (req, res) => {
@@ -156,9 +190,56 @@ export const determineRole = async (req, res) => {
     }
 }
 
+// export const updateProfile = async (req, res) => {
+//     try {
+//         const userId = req.user._id;
+//         const { username, email, password } = req.body;
+//         const user = await User.findById(userId);
+//         const isMatch = await user.isCorrectPassword(password);
+//         if (!isMatch) {
+//             return res.status(400).json({ message: 'Incorrect old password' });
+//         }
+//         const updatedUser  = await User.findOneAndUpdate(
+//             { _id: userId }, 
+//             { $set: { username, email } }, 
+//             { new: true } 
+//         );
+//         if (!updatedUser) {
+//             return res.status(404).json({ message: 'User not found' });
+//         }
+//         return res.status(200).json(user);
+//     } catch (error) {
+//         return res.status(500).json({ message: error.message });
+//     }
+// };
+
 export const updateProfile = async (req, res) => {
-    
+    try {
+        const userId = req.user._id;
+        const { username, password } = req.body;
+        const user = await User.findById(userId);
+        
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        if (!password){
+            return res.status(400).json({ message: "Required password"});
+        }
+
+        const isMatch = await user.isCorrectPassword(password);
+        if (!isMatch) {
+            return res.status(400).json({ message: 'Incorrect old password' });
+        }
+
+        user.username = username;
+        const updatedUser = await user.save();
+
+        return res.status(200).json(updatedUser);
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
 };
+
 
 export const forgetPassword = async (req, res) => {
 
@@ -167,7 +248,7 @@ export const forgetPassword = async (req, res) => {
 export const changePassword = async (req, res) => {
 
     try {
-        const { oldPassword, newPassword } = req.body;
+        const { oldPassword, newPassword, confirmPassword } = req.body;
         const userId = req.user._id;
         console.log(userId);
         if (!oldPassword || !newPassword) {
@@ -181,6 +262,11 @@ export const changePassword = async (req, res) => {
             return res.status(400).json({ message: 'Incorrect old password' });
         }
 
+        // check confirm password
+        if (newPassword !== confirmPassword) {
+            return res.status(400).json({ message: 'Passwords do not match' });
+        }
+        
         // update password
         user.password = newPassword;
         await user.save();
@@ -195,6 +281,26 @@ export const changePassword = async (req, res) => {
 export const updateExperience = async (req, res) => {
     
 };
+
+export const adminChangeUserRoleAndExperience = async (req, res) => {
+    try {
+        const userId = req.params.id;
+        const { role, experience } = req.body;
+        const user = await User.findOneAndUpdate(
+            { _id: userId }, 
+            { $set: { role, experience } }, 
+            { new: true } 
+        );
+        
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        return res.status(200).json(user);
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+}
 
 export const selfDeleteAccount = async (req, res) => {
     try {
@@ -213,7 +319,16 @@ export const adminDeleteAccount = async (req, res) => {
     } catch (error) {
         return res.status(500).json({ message: error.message });
     }
+}
 
+export const adminDeleteManyAccount = async (req, res) => {
+    try {
+        const userIds = req.body.ids;
+        await User.deleteMany({ _id: { $in: userIds } });
+        return res.status(200).json({ message: 'Accounts deleted successfully' });
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
 }
 
 export const refreshToken = async (req, res) => {
@@ -233,7 +348,6 @@ export const refreshToken = async (req, res) => {
             return res.status(403).json({ message: 'Refresh token not valid' });
         }
         // console.log("Old RefreshToken", user.refreshToken);
-
 
         const newAccessToken = await user.generateAccessToken();
         sendToken(res, user, newAccessToken, refreshToken, 'Token Refreshed Successfully', 200);

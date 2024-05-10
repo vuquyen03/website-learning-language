@@ -21,7 +21,7 @@ const Home = () => {
     }
 
     if (userRole === 'admin' && userRoleDone) {
-        return <Navigate to="/adminPanel/home" />;
+        return <Navigate to="/adminPanel" />;
     }
 
     return (
