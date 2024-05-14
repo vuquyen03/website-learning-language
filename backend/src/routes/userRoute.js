@@ -1,80 +1,62 @@
 import express from 'express';
-import { 
-    register,
-    login,
-    logout,
-    getUserReference,
-    getAllUsers,
-    getProfile,
-    getUserById,
-    determineRole,
-    updateProfile,
-    forgetPassword,
-    changePassword,
-    updateExperience,
-    selfDeleteAccount,
-    adminDeleteAccount,
-    adminDeleteManyAccount,
-    adminChangeUserRoleAndExperience,
-    refreshToken,
-    checkLogin
-} from '../controllers/userController.js';
+import userController from '../controllers/userController.js';
 import { verifyJWT, isAdmin } from '../middlewares/auth/auth.js';
+import rateLimiter from '../middlewares/rateLimit/rate-limit.js';
 
 const router = express.Router();
 
 // REGISTER USER
-router.post('/register', register);
+router.post('/register', userController.register);
 
 // LOGIN USER
-router.post('/login', login);
+router.post('/login', rateLimiter, userController.login);
 
 // LOGOUT USER
-router.post('/logout', verifyJWT, logout);
+router.post('/logout', verifyJWT, userController.logout);
 
 // GET USER PROFILE
-router.get('/profile', verifyJWT, getProfile);
+router.get('/profile', verifyJWT, userController.getProfile);
 
 // UPDATE USER PROFILE
-router.put('/profile', verifyJWT, updateProfile);
-
-// FORGET PASSWORD
-router.post('/forget-password', forgetPassword);
+router.put('/profile', verifyJWT, userController.updateProfile);
 
 // CHANGE PASSWORD
-router.put('/change-password', verifyJWT, changePassword);
+router.put('/change-password', verifyJWT, userController.changePassword);
 
 // UPDATE EXPERIENCE
-router.put('/experience', updateExperience);
+router.put('/experience', userController.updateExperience);
 
 // REFRESH TOKEN
-router.post('/refresh-token', refreshToken);
+router.post('/refresh-token', userController.refreshToken);
 
 // DETERMINE ROLE
-router.get('/role', verifyJWT, determineRole);
+router.get('/role', verifyJWT, userController.determineRole);
+
+// GET EXPERIENCE 
+router.get('/experience', verifyJWT, userController.getExperienceAllUsers);
 
 // GET ALL USERS
-router.get('/all', verifyJWT, getAllUsers);
+router.get('/all', verifyJWT, isAdmin, userController.getAllUsers);
 
 // CHECK LOGIN STATUS
-router.get('/check-login', verifyJWT, checkLogin);
+router.get('/check-login', verifyJWT, userController.checkLogin);
 
 // GET USER REFERENCE
-router.get('/', verifyJWT, isAdmin, getUserReference);
+router.get('/', verifyJWT, isAdmin, userController.getUserReference);
 
 // DELETE USER
-router.delete('/users', verifyJWT, selfDeleteAccount);
+router.delete('/users', verifyJWT, userController.selfDeleteAccount);
 
 // DELETE USER BY ADMIN
-router.delete('/delete/:id', verifyJWT, isAdmin, adminDeleteAccount);
+router.delete('/delete/:id', verifyJWT, isAdmin, userController.adminDeleteAccount);
 
 // DELETE MANY USERS BY ADMIN
-router.delete('/deleteMany', verifyJWT, isAdmin, adminDeleteManyAccount);
+router.delete('/deleteMany', verifyJWT, isAdmin, userController.adminDeleteManyAccount);
 
 // EDIT USER ROLE AND EXPERIENCE BY ADMIN
-router.put('/edit/:id', verifyJWT, isAdmin, adminChangeUserRoleAndExperience);
+router.put('/edit/:id', verifyJWT, isAdmin, userController.adminChangeUserRoleAndExperience);
 
 // GET USER BY ID
-router.get('/:id', verifyJWT, isAdmin, getUserById);
+router.get('/:id', verifyJWT, isAdmin, userController.getUserById);
 
 export default router;

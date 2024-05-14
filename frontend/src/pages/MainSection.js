@@ -4,6 +4,7 @@ import Home from './Home';
 import AdminPanel from './AdminPanel';
 import Login from './Login';
 import Signup from './Signup';
+import ForgotPassword from './ForgotPassword';
 import Dashboard from './Dashboard';
 import Sidebar from '../components/Sidebar';
 import Profile from './Profile';
@@ -29,7 +30,6 @@ function MainSection() {
         window.scrollTo(0, 0);
     }, [pathname]);
 
-    // console.log("current Time", new Date(Date.now()));
     // console.log("loggedIn", loggedIn);
     // console.log("userRole", userRole);
     if (isLoading || !userRoleDone) {
@@ -47,6 +47,7 @@ function MainSection() {
                         <Route path="/" element={<Home />} />
                         <Route path="/login" element={<Login />} />
                         <Route path="/signup" element={<Signup />} />
+                        <Route path="/forgot-password" element={<ForgotPassword />} />
 
                         {userRole !=='admin' && (
                             <>

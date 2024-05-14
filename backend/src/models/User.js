@@ -11,7 +11,8 @@ const userSchema = new Schema({
         required: true,
         trim: true,
         unique: true,
-        minlength: 3,
+        minlength: 3,   
+        match : [/^[a-zA-Z0-9]+$/, 'is invalid, only contain a-z, A-Z, 0-9!'],
     },
     email: {
         type: String,
@@ -25,6 +26,10 @@ const userSchema = new Schema({
         type: String,
         required: true,
         minlength: 6,
+    },
+    passwordHistory: {
+        type: [String],
+        default: [],
     },
     role: {
         type: String,
@@ -43,6 +48,10 @@ const userSchema = new Schema({
         type: String,
         default: '',
     },
+    loginAttempts: {
+        type: Number,
+        default: 0,
+    },
 });
 
 // Hash password before save
@@ -51,7 +60,15 @@ userSchema.pre('save', async function (next) {
         const saltRounds = 10;
         const salt = await bcrypt.genSalt(saltRounds);
         // Encrypt password with salt
-        this.password = await bcrypt.hash(this.password, salt); 
+        const hashedPassword = await bcrypt.hash(this.password, salt); 
+        
+        // Remove password history if it is more than 5
+        if (this.passwordHistory.length >= 5) {
+            this.passwordHistory.shift();
+        }
+
+        this.password = hashedPassword;
+        this.passwordHistory.push(hashedPassword);
     }
     next();
 });

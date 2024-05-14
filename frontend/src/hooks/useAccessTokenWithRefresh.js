@@ -13,21 +13,34 @@ const useAccessTokenWithRefresh = () => {
     useEffect(() => {
         const refreshToken = async () => {
             console.log("Calling Refresh Token")
-            const currentTime = new Date(Date.now());
-            const expirationTime = localStorage.getItem("expirationTime");
+            try {
+                const currentTime = new Date(Date.now());
+                const expirationTime = localStorage.getItem("expirationTime");
 
-            if (currentTime/1000 > expirationTime - 60 * 2){
-                try {
-                    await dispatch(refreshAccessToken());
-                    console.log("refreshToken called");
-                    setAccessTokenDone(true);
-                } catch (error) {
-                    console.error('Error refreshing access token:', error);
+                console.log(currentTime / 1000, expirationTime - 60 * 2)
+
+                if ((currentTime / 1000 > expirationTime - 60 * 2) && expirationTime) {
+                    try {
+                        await dispatch(refreshAccessToken());
+                        console.log("refreshToken called");
+                        setAccessTokenDone(true);
+                    } catch (error) {
+                        console.error('Error refreshing access token:', error);
+                    }
                 }
+                setAccessTokenDone(true);
+            } catch (error) {
+                console.error('Error refreshing access token:', error);
             }
         };
-        refreshToken();
-    });
+
+        // Lắng nghe thay đổi trong accessTokenDone và kiểm tra nếu accessTokenDone thay đổi, thực hiện làm mới accessToken
+        const interval = setInterval(() => {
+            refreshToken();
+        }, 1000 * 60 * 1);
+
+        return () => clearInterval(interval); 
+    }, [dispatch, accessTokenDone]);
 
     return { accessTokenDone };
 }

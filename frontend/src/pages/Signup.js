@@ -1,11 +1,13 @@
 import { useEffect, useState, useRef } from 'react';
 import logo from '../assets/HustEdu.png';
+import { FaExclamationCircle } from 'react-icons/fa';
 import { Link, Navigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import axios from 'axios';
 import { checkStatus, setUserRole } from '../redux/actions/userActions';
 import { HiEye, HiEyeOff } from 'react-icons/hi';
 import { AiOutlineLoading } from 'react-icons/ai';
+import ReCAPTCHA from 'react-google-recaptcha';
 
 
 /**
@@ -14,9 +16,11 @@ import { AiOutlineLoading } from 'react-icons/ai';
  */
 const Signup = () => {
     const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const formRef = useRef(null);
+    const [isVerified, setIsVerified] = useState(false);
 
     const dispatch = useDispatch();
     const loggedIn = useSelector(state => state.user.loggedIn);
@@ -33,6 +37,10 @@ const Signup = () => {
         return <Navigate to="/dashboard" />;
     }
 
+    const handleRecaptchaChange = (value) => {
+        setIsVerified(true);
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         const formData = new FormData(formRef.current);
@@ -40,48 +48,55 @@ const Signup = () => {
 
         console.log(inputData);
 
-        try {
-            setIsLoading(true);
-            const response = await axios.post(
-                process.env.REACT_APP_API_URL + '/user/register',
-                inputData,
-                { withCredentials: true }
-            );
-            console.log(response);
-            if (response.status === 201) {
-                // Set user role in Redux
-                await dispatch(setUserRole(response.data.user.role));
-                console.log(response.data.user.role);
-            }
-            setIsLoading(false);
-        } catch (error) {
-            setIsLoading(false);
-
-            // set error message based on error message from server
-            // username or email already exists, password shorter than 6 characters
-            if (error.response && error.response.data && error.response.data.error) {
-                const errorMessage = error.response.data.error;
-
-                switch (errorMessage) {
-                    case 'Username already exists':
-                        setErrorMessage('Username already exists');
-                        break;
-                    case 'Email already exists':
-                        setErrorMessage('Email already exists');
-                        break;
-                    case 'Email must be a valid address':
-                        setErrorMessage('Email must be a valid address');
-                        break;
-                    case 'Password must be at least 6 characters':
-                        setErrorMessage('Password must be at least 6 characters');
-                        break;
-                    default:
-                        setErrorMessage('Something went wrong');
-                        break;
+        if (isVerified){
+            try {
+                setIsLoading(true);
+                const response = await axios.post(
+                    process.env.REACT_APP_API_URL + '/user/register',
+                    inputData,
+                    { withCredentials: true }
+                );
+                console.log(response);
+                if (response.status === 201) {
+                    // Set user role in Redux
+                    await dispatch(setUserRole(response.data.user.role));
+                    console.log(response.data.user.role);
                 }
-            } else {
-                setErrorMessage('Something went wrong');
+                setIsLoading(false);
+            } catch (error) {
+                setIsLoading(false);
+    
+                // set error message based on error message from server
+                // username or email already exists, password shorter than 6 characters
+                if (error.response && error.response.data && error.response.data.error) {
+                    const errorMessage = error.response.data.error;
+    
+                    switch (errorMessage) {
+                        case 'Username already exists':
+                            setErrorMessage('Username already exists');
+                            break;
+                        case 'Email already exists':
+                            setErrorMessage('Email already exists');
+                            break;
+                        case 'Email must be a valid address':
+                            setErrorMessage('Email must be a valid address');
+                            break;
+                        case 'Password does not match':
+                            setErrorMessage('Password does not match');
+                            break;
+                        case 'Password must be at least 6 characters':
+                            setErrorMessage('Password must be at least 6 characters');
+                            break;
+                        default:
+                            setErrorMessage('Something went wrong');
+                            break;
+                    }
+                } else {
+                    setErrorMessage('Something went wrong');
+                }
             }
+        } else {
+            setErrorMessage('Please verify that you are not a robot');
         }
     };
 
@@ -102,7 +117,7 @@ const Signup = () => {
                     className="w-20 h-20 mx-auto mb-2"
                 />
 
-                <h1 className="text-2xl font-bold mb-6 text-center">Sign up</h1>
+                <h1 className="text-2xl font-bold mb-4 text-center">Sign up</h1>
                 {/* Fields Container */}
                 <div className="w-full flex flex-col gap-4">
                     {/* Username Field Wrapper*/}
@@ -164,14 +179,49 @@ const Signup = () => {
                             </button>
                         </div>
                     </div>
+
+                    <div className="flex flex-col gap-1">
+                        <label
+                            className="font-bold"
+                            htmlFor="confirmPassword"
+                        >
+                            Confirm Password
+                        </label>
+                        <div className="relative">
+                            <input
+                                className="password-input"
+                                type={showConfirmPassword ? 'text' : 'password'}
+                                id="confirmPassword"
+                                name="confirmPassword"
+                                autoComplete="off"
+                                required
+                            />
+                            {/* Show confirmPassword button */}
+                            <button
+                                type="button"
+                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                className="absolute inset-y-0 right-0 h-fit w-fit my-auto mr-2 p-2 rounded-full hover:bg-gray-300"
+                            >
+                                {showPassword ? <HiEyeOff /> : <HiEye />}
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Error message */}
                 {errorMessage && (
-                    <p className="text-red-500 mt-6 inline-flex items-center text-sm text-center">
+                    <p className="text-red-500 mt-4 inline-flex items-center text-sm text-center">
+                        <FaExclamationCircle className="mr-1" />
                         {errorMessage}
                     </p>
                 )}
+
+                <ReCAPTCHA
+                    className="mt-3"
+                    sitekey={process.env.REACT_APP_RECAPTCHA_SITE_KEY}
+                    onChange={handleRecaptchaChange}
+                    theme="light"
+                />
 
                 {/* Submit Button */}
                 <button

@@ -38,6 +38,23 @@
   @apply bg-white w-full h-full p-4 rounded-xl shadow-lg;
 }
 
+.ranking-first-style {
+  @apply border-2 border-amber-400 bg-amber-200 text-amber-600;
+}
+
+.ranking-second-style {
+  @apply border-2   border-slate-400 bg-slate-200 text-slate-400;
+}
+
+.ranking-third-style {
+  @apply border-2 border-[#D7975D] bg-[#F7BE8B] text-[#CD7900];
+}
+
+.ranking-index-style {
+  @apply h-8 w-8 p-2 flex justify-center items-center rounded-full font-bold;
+}
+
+
 html {
   font-family: 'Nunito Sans', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }

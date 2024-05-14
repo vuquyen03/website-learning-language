@@ -9,6 +9,9 @@ import { useDispatch, useSelector } from 'react-redux';
 import { CircularProgress } from '@mui/material';
 import { checkStatus, setUserRole, checkRole } from '../redux/actions/userActions';
 import { jwtDecode } from "jwt-decode";
+import DOMPurify from 'dompurify';
+import ReCAPTCHA from "react-google-recaptcha";
+
 /**
  * Login component for user authentication.
  * @returns The login form.
@@ -16,13 +19,17 @@ import { jwtDecode } from "jwt-decode";
 const Login = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [errorMessage, setErrorMessage] = useState(''); // state for displaying error message
+    const [rateLitmit, setRateLimit] = useState(false);
     const [loading, setLoading] = useState(false);
     const [checking, setChecking] = useState(true); // State for checking login status
     const formRef = useRef(null); // Reference to the form element
-    const [redirectAdminPanel, setRedirectAdminPanel] = useState(false);
+    const recaptchaRef = useRef(null); // Reference to the reCAPTCHA element
+    const [redirectAdminPanel, setRedirectAdminPanel] = useState(false); // State for redirecting to admin panel
     const dispatch = useDispatch();
+    const [isVerified, setIsVerified] = useState(true);
     const loggedIn = useSelector(state => state.user.loggedIn);
     const userRole = useSelector(state => state.user.userRole);
+    const [numberOfLoginAttempts, setNumberOfLoginAttempts] = useState(0);
 
 
     useEffect(() => {
@@ -33,7 +40,7 @@ const Login = () => {
 
         const checkLoginStatus = async () => {
             await dispatch(checkStatus());
-            setChecking(false); // Kết thúc quá trình kiểm tra
+            setChecking(false);
         };
 
         checkLoginStatus();
@@ -58,6 +65,10 @@ const Login = () => {
         return <Navigate to="/adminPanel" />;
     }
 
+    const handleRecaptchaChange = (value) => {
+        setIsVerified(true);
+    }
+
     const handleShowPassword = () => {
         setShowPassword(!showPassword);
     };
@@ -67,39 +78,70 @@ const Login = () => {
 
         const formData = new FormData(formRef.current);
         const inputData = Object.fromEntries(formData.entries());
-
-        try {
-            setLoading(true); // set loading true before making the request
-            const response = await axios.post(
-                process.env.REACT_APP_API_URL + '/user/login',
-                inputData,
-                { withCredentials: true }
-            );
-
-            if (response.status === 200) {
-                const expirationTime = jwtDecode(response.data.accessToken).exp;
-                localStorage.setItem('expirationTime', expirationTime);
-                dispatch(setUserRole(response.data.user.role));
-                console.log(response.data.user.role);
-                if (response.data.role === 'admin') {
-                    setRedirectAdminPanel(true);
-                }
-            }
-            setLoading(false);
-
-        } catch (error) {
-            setLoading(false);
-            switch (true) {
-                case error.response.data.error.includes('Incorrect Email or Password'):
-                    setErrorMessage('Incorrect credentials');
-                    break;
-                default:
-                    setErrorMessage('Something went wrong');
-                    break;
-            }
-            console.error('Lỗi đăng nhập', error);
+        console.log("Email:", inputData.email);
+        console.log("Password:",inputData.password);
+        const email = DOMPurify.sanitize(inputData.email);
+        
+        const emailRegex = /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}/
+        if (!emailRegex.test(email)) {
+            setErrorMessage('Invalid email format');
+            return;
         }
 
+        if(rateLitmit){
+            setErrorMessage('Too many login attempts, please try again after 15 minutes');
+            return;
+        }
+
+        if(numberOfLoginAttempts >= 5 && isVerified && !rateLitmit){
+            setIsVerified(false);
+            recaptchaRef.current.reset();
+        }
+        
+        if(isVerified){
+            try {
+                setLoading(true); // set loading true before making the request
+                const response = await axios.post(
+                    process.env.REACT_APP_API_URL + '/user/login',
+                    inputData,
+                    { withCredentials: true }
+                );
+    
+                if (response.status === 200) {
+                    const expirationTime = jwtDecode(response.data.accessToken).exp;
+                    localStorage.setItem('expirationTime', expirationTime);
+                    dispatch(setUserRole(response.data.user.role));
+                    console.log(response.data.user.role);
+                    if (response.data.role === 'admin') {
+                        setRedirectAdminPanel(true);
+                    }
+                }
+                setLoading(false);
+    
+            } catch (error) {
+                setNumberOfLoginAttempts(numberOfLoginAttempts + 1);
+                setLoading(false);
+                switch (true) {
+                    case error.response.data.error.includes('Incorrect Email or Password'):
+                        setErrorMessage('Incorrect credentials');
+                        break;
+                    case error.response.data.error.includes('Please complete the reCAPTCHA'):
+                        setErrorMessage('Please complete the reCAPTCHA');
+                        setNumberOfLoginAttempts(5);
+                        break;
+                    case error.response.data.error.includes('Too many login attempts from this IP, please try again after 15 minutes'):
+                        setErrorMessage('Too many login attempts, please try again after 15 minutes');
+                        setRateLimit(true);
+                        break;
+                    default:
+                        setErrorMessage('Something went wrong');
+                        break;
+                }
+                console.error('Lỗi đăng nhập', error);
+            }
+        } else {
+            setErrorMessage("Please complete the reCAPTCHA");
+        }
     };
 
     return (
@@ -161,6 +203,15 @@ const Login = () => {
                     </div>
                 </div>
 
+                {/* Forgot password link */}
+                <p className="w-full flex flex-col gap-4">
+                    <Link
+                        to="/forgot-password"
+                        className="flex justify-end font-bold text-blue-400 hover:text-blue-600 hover:underline">
+                        Forgot password?
+                    </Link>
+                </p>
+
                 {/* Error message */}
                 {errorMessage && (
                     <p className="text-red-500 mt-6 inline-flex items-center text-sm text-center">
@@ -169,6 +220,18 @@ const Login = () => {
                     </p>
                 )}
 
+
+                {numberOfLoginAttempts >= 5 && (
+                    <ReCAPTCHA
+                        ref={recaptchaRef}
+                        className="mt-3"
+                        sitekey= {process.env.REACT_APP_RECAPTCHA_SITE_KEY}
+                        onChange={handleRecaptchaChange}
+                        theme="light"
+                    />)
+                }
+    
+                
                 {/* Submit Button */}
                 <button
                     className="w-full mt-6 py-3 px-6 bg-primary hover:bg-primary-shade text-white font-bold rounded-xl"
@@ -176,9 +239,9 @@ const Login = () => {
                 >
                     {loading ? <AiOutlineLoading className="animate-spin h-6 w-6 mx-auto" /> : 'Log in'}
                 </button>
+                
 
-
-                <p className="mt-6 text-gray-500 dark:text-gray-400 text-center">
+                <p className="mt-4 text-gray-500 dark:text-gray-400 text-center">
                     Don't have an account?{' '}
                     <Link
                         to="/signup"

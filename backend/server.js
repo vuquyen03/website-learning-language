@@ -1,6 +1,7 @@
 import express from 'express'; 
 import * as dotenv from 'dotenv';
 import connectDB from './src/config/connection.js';
+import morgan from 'morgan';
 import cors from 'cors';
 import user from './src/routes/userRoute.js';
 import course from './src/routes/courseRoute.js';
@@ -24,6 +25,7 @@ app.use(
     })
   );
 app.use(cookieParser()); // đọc và ghi cookie trong các yêu cầu HTTP
+app.use(morgan("dev"));
 
 const PORT = process.env.PORT || 5000;
 

@@ -1,17 +1,21 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Navigate } from 'react-router-dom';
 import { CircularProgress } from '@mui/material';
+import { FaExclamationCircle } from 'react-icons/fa';
 import useUserStatus from '../hooks/useUserStatus';
 import axios from 'axios';
 import dateFormat from '../util/dateFormat';
+import escapeHTML from '../util/escapeHTML';
 
 const Profile = () => {
     const { loggedIn, isLoading } = useUserStatus();
-    const [profileData, setProfileData] = useState(null);
+    const [profileData, setProfileData] = useState('');
     const [fetchProfileDone, setFetchProfileDone] = useState(false);
     const [editProfilePopup, setEditProfilePopup] = useState(false);
     const [changePasswordPopup, setChangePasswordPopup] = useState(false);
     const [submitLoading, setSubmitLoading] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
+    const formRef = useRef(null);
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -19,7 +23,12 @@ const Profile = () => {
                 if (loggedIn) {
                     const response = await axios.get(`${process.env.REACT_APP_API_URL}/user/profile`, { withCredentials: true });
                     // console.log(response)
-                    setProfileData(response.data.user);
+                    const escapedData = {
+                        ...response.data.user,
+                        username: escapeHTML(response.data.user.username),
+                        email: escapeHTML(response.data.user.email)
+                    };
+                    setProfileData(escapedData);
                 } else {
                     setProfileData(null);
                 }
@@ -32,8 +41,11 @@ const Profile = () => {
 
         setFetchProfileDone(false);
         fetchProfile();
-        // console.log("Profile data:", profileData);
     }, [loggedIn]);
+
+    // console.log("Profile data:", profileData)
+    // console.log("Fetch profile done:", fetchProfileDone)
+    // console.log("Loading:", isLoading)
 
     if (isLoading || !fetchProfileDone || profileData == null) {
         return (
@@ -50,15 +62,101 @@ const Profile = () => {
     const firstLetter = profileData.username?.charAt(0).toUpperCase();
     const date = dateFormat(profileData.createdAt, { dateSuffix: true });
 
-    const handleEditProfile = () => {
+    const handleEditProfile = async (e) => {
+        e.preventDefault();
 
+        const formData = new FormData(formRef.current);
+        const inputData = Object.fromEntries(formData.entries());
+
+        try {
+            setSubmitLoading(true);
+            const response = await axios.put(
+                `${process.env.REACT_APP_API_URL}/user/profile`,
+                inputData,
+                { withCredentials: true }
+            );
+
+            // console.log("Update profile:", response);
+            if (response.status === 200) {
+                const escapedData = {
+                    ...response.data,
+                    username: escapeHTML(response.data.username),
+                    email: escapeHTML(response.data.email)
+                };
+                setProfileData(escapedData);
+                closeEditPopup();
+            }
+
+        } catch (error) {
+            console.error("Error editing profile:", error);
+            switch (true) {
+                case error.response.data.error.includes('Incorrect old password'):
+                    setErrorMessage('Incorrect old password');
+                    break;
+                case error.response.data.error.includes('Username is invalid, only contain a-z, A-Z, 0-9'):
+                    setErrorMessage('Username is invalid, only contain a-z, A-Z, 0-9');
+                    break;
+                case error.response.data.error.includes('Username must be at least 3 characters'):
+                    setErrorMessage('Username must be at least 3 characters');
+                    break;
+                case error.response.data.error.includes('Username already exists'):
+                    setErrorMessage('Username already exists');
+                    break;
+                default:
+                    setErrorMessage('Something went wrong');
+                    break;
+            }
+        } finally {
+            setSubmitLoading(false);
+        }
     };
 
-    const handleChangePassword = () => {
+    const handleChangePassword = async (e) => {
+        e.preventDefault();
+
+        const formData = new FormData(formRef.current);
+        const inputData = Object.fromEntries(formData.entries());
+
+        try {
+            setSubmitLoading(true);
+            const response = await axios.put(
+                `${process.env.REACT_APP_API_URL}/user/change-password`,
+                inputData,
+                { withCredentials: true }
+            );
+
+            // console.log("Change password:", response);
+            if (response.status === 200) {
+                closeChangePasswordPopup();
+            }
+
+        } catch (error) {
+            console.error("Error changing password:", error);
+            switch (true) {
+                case error.response.data.error.includes('Incorrect old password'):
+                    setErrorMessage('Incorrect old password');
+                    break;
+                case error.response.data.error.includes('Password must be at least 6 characters'):
+                    setErrorMessage('Password must be at least 6 characters');
+                    break;
+                case error.response.data.error.includes('Password does not match'):
+                    setErrorMessage('Password does not match');
+                    break;
+                case error.response.data.error.includes('Password has been used before'):
+                    setErrorMessage('Password has been used before');
+                    break;
+                default:
+                    setErrorMessage('Something went wrong');
+                    break;
+            }
+        } finally {
+            setSubmitLoading(false);
+        }
 
     };
 
     const openEditPopup = () => {
+        setErrorMessage('');
         setEditProfilePopup(true);
     };
 
@@ -67,6 +165,7 @@ const Profile = () => {
     };
 
     const openChangePasswordPopup = () => {
+        setErrorMessage('');
         setChangePasswordPopup(true);
     };
 
@@ -103,15 +202,16 @@ const Profile = () => {
 
             {editProfilePopup && (
                 <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50">
-                    <div className="bg-white p-8 rounded-lg">
+                    <div className="bg-white p-8 rounded-lg w-96">
                         <h3 className="text-2xl font-bold mb-4">Edit Profile</h3>
                         {/* Add your popup content here */}
                         <form
+                            ref={formRef}
                             onSubmit={handleEditProfile}>
                             <div className="w-full flex flex-col gap-4">
                                 <div>
                                     <input
-                                        className="form-input-style px-4 py-2"
+                                        className="form-input-style px-4 py-2 w-full"
                                         type="text"
                                         id="username"
                                         name="username"
@@ -122,7 +222,7 @@ const Profile = () => {
 
                                 <div>
                                     <input
-                                        className="form-input-style px-4 py-2"
+                                        className="form-input-style px-4 py-2 w-full"
                                         type="password"
                                         id="password"
                                         name="password"
@@ -132,19 +232,26 @@ const Profile = () => {
                                 </div>
                             </div>
 
+                            {/* Error message */}
+                            {errorMessage && (
+                                <p className="text-red-500 mt-3 inline-flex items-center text-sm text-center">
+                                    <FaExclamationCircle className="mr-1" />
+                                    {errorMessage}
+                                </p>
+                            )}
+
                             <div className="flex justify-center items-center mt-2">
                                 <button
                                     type="submit"
                                     className="w-20 h-10 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md"
-                                    disabled={submitLoading}
                                 >
-                                    {submitLoading ? <CircularProgress className="animate-spin h-6 w-6 mx-auto" /> : 'Done'}
+                                    {submitLoading ? <CircularProgress size={25} className="animate-spin h-3 w-3" /> : 'Done'}
                                 </button>
                             </div>
                         </form>
 
                         <div className="flex justify-center items-center mt-2">
-                            <button class="w-20 h-10 bg-transparent hover:bg-blue-500 text-blue-700 font-semibold hover:text-white py-2 px-4 border border-blue-500 hover:border-transparent rounded-md" onClick={closeEditPopup}>Close</button>
+                            <button className="w-20 h-10 bg-transparent hover:bg-blue-500 text-blue-700 font-semibold hover:text-white py-2 px-4 border border-blue-500 hover:border-transparent rounded-md" onClick={closeEditPopup}>Close</button>
                         </div>
                     </div>
                 </div>
@@ -152,18 +259,19 @@ const Profile = () => {
 
             {changePasswordPopup && (
                 <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50">
-                    <div className="bg-white p-8 rounded-lg w-auto">
+                    <div className="bg-white p-8 rounded-lg w-96">
                         <h3 className="text-2xl font-bold mb-4">Change Password</h3>
                         {/* Add your popup content here */}
                         <form
+                            ref={formRef}
                             onSubmit={handleChangePassword}>
                             <div className="w-full flex flex-col gap-4">
                                 <div>
                                     <input
-                                        className="form-input-style px-4 py-2"
+                                        className="form-input-style px-4 py-2 w-full"
                                         type="password"
-                                        id="oldpassword"
-                                        name="oldpassword"
+                                        id="oldPassword"
+                                        name="oldPassword"
                                         placeholder='Old Password'
                                         required
                                     />
@@ -171,10 +279,10 @@ const Profile = () => {
 
                                 <div>
                                     <input
-                                        className="form-input-style px-4 py-2"
+                                        className="form-input-style px-4 py-2 w-full"
                                         type="password"
-                                        id="newpassword"
-                                        name="newpassword"
+                                        id="newPassword"
+                                        name="newPassword"
                                         placeholder='New Password'
                                         required
                                     />
@@ -183,10 +291,10 @@ const Profile = () => {
 
                                 <div>
                                     <input
-                                        className="form-input-style px-4 py-2"
+                                        className="form-input-style px-4 py-2 w-full"
                                         type="password"
-                                        id="confirmpassword"
-                                        name="confirmpassword"
+                                        id="confirmPassword"
+                                        name="confirmPassword"
                                         placeholder='Confirm Password'
                                         required
                                     />
@@ -194,19 +302,26 @@ const Profile = () => {
                                 </div>
                             </div>
 
+                            {/* Error message */}
+                            {errorMessage && (
+                                <p className="text-red-500 mt-3 inline-flex items-center text-sm text-center">
+                                    <FaExclamationCircle className="mr-1" />
+                                    {errorMessage}
+                                </p>
+                            )}
+
                             <div className="flex justify-center items-center mt-2">
                                 <button
                                     type="submit"
                                     className="w-20 h-10 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md"
-                                    disabled={submitLoading}
                                 >
-                                    {submitLoading ? <CircularProgress className="animate-spin h-6 w-6 mx-auto" /> : 'Done'}
+                                    {submitLoading ? <CircularProgress size={25} className="animate-spin h-3 w-3" /> : 'Done'}
                                 </button>
                             </div>
                         </form>
 
                         <div className="flex justify-center items-center mt-2">
-                            <button class="w-20 h-10 bg-transparent hover:bg-blue-500 text-blue-700 font-semibold hover:text-white py-2 px-4 border border-blue-500 hover:border-transparent rounded-md" onClick={closeChangePasswordPopup}>Close</button>
+                            <button className="w-20 h-10 bg-transparent hover:bg-blue-500 text-blue-700 font-semibold hover:text-white py-2 px-4 border border-blue-500 hover:border-transparent rounded-md" onClick={closeChangePasswordPopup}>Close</button>
                         </div>
 
                     </div>
