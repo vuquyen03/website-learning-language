@@ -1,15 +1,23 @@
 import express from 'express';
 import userController from '../controllers/userController.js';
 import { verifyJWT, isAdmin } from '../middlewares/auth/auth.js';
-import rateLimiter from '../middlewares/rateLimit/rate-limit.js';
+import csurf from 'csurf';
+import { loginRateLimiter, forgotPasswordRateLimiter } from '../middlewares/rateLimit/rate-limit.js';
 
 const router = express.Router();
+const csrfProtection = csurf({ cookie: true });
 
 // REGISTER USER
 router.post('/register', userController.register);
 
 // LOGIN USER
-router.post('/login', rateLimiter, userController.login);
+router.post('/login', loginRateLimiter, userController.login);
+
+// VERIFY EMAIL
+router.get('/verify-email/:token', userController.verifyEmail);
+
+// RESEND EMAIL
+router.post('/resend-email', verifyJWT, userController.resendEmail);
 
 // LOGOUT USER
 router.post('/logout', verifyJWT, userController.logout);
@@ -23,14 +31,20 @@ router.put('/profile', verifyJWT, userController.updateProfile);
 // CHANGE PASSWORD
 router.put('/change-password', verifyJWT, userController.changePassword);
 
+// FORGOT PASSWORD
+router.post('/forgot-password', forgotPasswordRateLimiter, userController.forgotPassword);
+
+// RESET PASSWORD
+router.post('/reset-password/:token', userController.resetPassword);
+
+// VALIDATE RESET TOKEN
+router.post('/validate-reset-token', userController.validateResetToken);
+
 // UPDATE EXPERIENCE
 router.put('/experience', userController.updateExperience);
 
 // REFRESH TOKEN
 router.post('/refresh-token', userController.refreshToken);
-
-// DETERMINE ROLE
-router.get('/role', verifyJWT, userController.determineRole);
 
 // GET EXPERIENCE 
 router.get('/experience', verifyJWT, userController.getExperienceAllUsers);

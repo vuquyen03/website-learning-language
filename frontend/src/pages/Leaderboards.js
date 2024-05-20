@@ -1,15 +1,17 @@
 import React, { useEffect, useState } from "react";
-import useUserStatus from "../hooks/useUserStatus";
 import { AiOutlineLoading } from 'react-icons/ai';
 import { Navigate } from "react-router-dom";
 import axios from "axios";
 import escapeHTML from "../util/escapeHTML";
+import { useSelector } from "react-redux";
 
 
 const Leaderboards = () => {
-    const { loggedIn, isLoading } = useUserStatus();
     const [data, setData] = useState([]);
     const [fetchLoading, setFetchLoading] = useState(false);
+    const userData = useSelector(state => state.user.userData);
+    const loggedIn = useSelector(state => state.user.loggedIn);
+    console.log("Leaderboards.js: userData: ", userData);
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -18,7 +20,10 @@ const Leaderboards = () => {
                 const response = await axios.get(process.env.REACT_APP_API_URL + "/user/experience", { withCredentials: true });
                 const allUsers = response.data.items;
                 const sortedData = allUsers.sort((a, b) => b.experience - a.experience);
-                const escapedData = sortedData.map((user) => {
+                
+                // Get the top 10 users
+                const topUsers = sortedData.slice(0, 10);
+                const escapedData = topUsers.map((user) => {
                     return {
                         ...user,
                         username: escapeHTML(user.username),

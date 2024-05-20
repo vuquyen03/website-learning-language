@@ -2,7 +2,9 @@ import User from '../models/User.js';
 import jwt from 'jsonwebtoken';
 import { sendToken } from '../middlewares/auth/sendToken.js';
 import bcrypt from 'bcrypt';
-import GoogleRecaptcha from 'google-recaptcha';
+import crypto, { verify } from 'crypto';
+import { sendMail } from '../helper/sendMail.js';
+import validator from 'validator';
 
 const generateAccessAndRefreshToken = async (userId) => {
     try {
@@ -16,61 +18,93 @@ const generateAccessAndRefreshToken = async (userId) => {
         return res.status(500).json({ message: 'Something went wrong while generating refresh and acess token'});
     }
 };
+
 const userController = {
+    // Method: POST
+    // Path: /user/register
     register: async (req, res) => {
         try {
             const { username, email, password, confirmPassword } = req.body;
-            console.log(req.body);
-            if (!username || !email || !password || !confirmPassword) {
-                return res.status(400).json({ message: 'All fields are required' });
-            }
-    
-            // check if user already exists
-            const existingUser  = await User.findOne({ username });
-            if (existingUser) {
-                return res.status(400).json({ error: 'Username already exists', field: 'username' });
-            }
-    
-            const existingEmail  = await User.findOne({ email });
-            if (existingEmail ) {
-                return res.status(400).json({ error: 'Email already exists', field: 'email' });
-            }
-    
-            if (password.length < 6) {
-                return res.status(400).json({ error: 'Password must be at least 6 characters' });
-            }
+            const recaptchaResponse = req.body['g-recaptcha-response'];
 
-            if (password !== confirmPassword) {
-                return res.status(400).json({ error: 'Password does not match' });
+            if (recaptchaResponse) {
+                try {
+                    const recaptchaVerifyUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaResponse}`;
+                    const recaptchaVerifyResponse = await fetch(recaptchaVerifyUrl, { method: 'POST' });
+                    const recaptchaVerifyData = await recaptchaVerifyResponse.json();
+                    if (!recaptchaVerifyData.success) {
+                        return res.status(400).json({ error: 'reCAPTCHA verification failed' });
+                    }
+
+                    continueRegister();
+
+                } catch (error) {
+                    console.log(error);
+                    return res.status(400).json({ error: 'reCAPTCHA verification failed' });
+                }
+            } else {
+                return res.status(400).json({ error: 'reCAPTCHA verification failed' });
             }
-    
-            const newUser = new User({ username, email, password });
-            await newUser.save(); 
-            const { accessToken, refreshToken } = await generateAccessAndRefreshToken(newUser._id);
-    
-            // send token
-            sendToken(res, newUser, accessToken, refreshToken ,"Registered Successfully", 201);
+            
+            async function continueRegister() {
+                if (!username || !email || !password || !confirmPassword) {
+                    return res.status(400).json({ message: 'All fields are required' });
+                }
+
+                // check if user already exists
+                const existingUser = await User.findOne({ username });
+                if (existingUser) {
+                    return res.status(400).json({ error: 'Username already exists', field: 'username' });
+                }
+
+                const existingEmail = await User.findOne({ email });
+                if (existingEmail) {
+                    return res.status(400).json({ error: 'Email already exists', field: 'email' });
+                }
+
+                if (!validator.isStrongPassword(password)){
+                    return res.status(400).json({ error: 'Password is too weak' });
+                }
+
+                if (password !== confirmPassword) {
+                    return res.status(400).json({ error: 'Password does not match' });
+                }
+
+                let verificationToken = crypto.randomBytes(32).toString('hex');
+                const newUser = new User({ username, email, password, verifyToken: verificationToken });
+                await newUser.save();
+                res.cookie('verificationToken', verificationToken, { httpOnly: true, secure: true, sameSite: 'Lax', maxAge: 1000 * 60 * 30 }); 
+
+                // send verification email
+                const verificationUrl = `${process.env.SERVER_URL}/user/verify-email/${verificationToken}`;
+                const html = `<p>Please click <a href="${verificationUrl}">here</a> to verify your email address.</p>`;
+                console.log(html);
+                await sendMail(email, 'Verify your email address', html);
+
+                const { accessToken, refreshToken } = await generateAccessAndRefreshToken(newUser._id);
+
+                // send token
+                sendToken(res, newUser, accessToken, refreshToken, "Registered Successfully", 201);
+            }
         }
         catch (error) {
             return res.status(500).json({ message: error.message });
         }
     },
 
+    // Method: POST
+    // Path: /user/login
     login: async (req, res) => {
         try {
             const { email, password } = req.body;
             const recaptchaResponse = req.body['g-recaptcha-response'];
-            // console.log(req.body)
-            const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-            console.log(`Request IP: ${ip}`);
+
 
             if (recaptchaResponse) {
                 try {
                     const recaptchaVerifyUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaResponse}`;
-
                     const recaptchaVerifyResponse = await fetch(recaptchaVerifyUrl, { method: 'POST' });
                     const recaptchaVerifyData = await recaptchaVerifyResponse.json();
-                    // console.log(recaptchaVerifyData)
 
                     if (!recaptchaVerifyData.success) {
                         return res.status(400).json({ error: 'reCAPTCHA verification failed' });
@@ -90,7 +124,7 @@ const userController = {
                     return res.status(400).json({ error: 'All fields are required' });
                 }
     
-                const user = await User.findOne({ email }).select('-refreshToken -passwordHistory');
+                const user = await User.findOne({ email }).select('-refreshToken -passwordHistory -resetPasswordToken -resetPasswordExpires -verifyToken');
                 if (!user) {
                     return res.status(400).json({ error: 'Incorrect Email or Password' });
                 }
@@ -119,13 +153,20 @@ const userController = {
         }
     },
 
+    // Method: POST
+    // Path: /user/logout
     logout: async (req, res) => {
         try {
+            // console.log(req.headers);
+            // console.log(req.headers['x-csrf-token']);
+            // console.log(req.csrfToken());
+            // console.log(req.csrfToken());
+
             await User.findByIdAndUpdate(req.user.id, { refreshToken: '' });
             const option = {
                 httpOnly: true,
                 secure: true,
-                sameSite: "none",
+                sameSite: "Lax",
             };
     
             // clear cookies
@@ -142,10 +183,12 @@ const userController = {
         }   
     },
 
+    // Method: GET
+    // Path: /user
     getUserReference: async (req, res) => {
         try {
-            const users = await User.find().select('-password -refreshToken');
-            if (!users || users.length === 0) { // Check if users array is empty
+            const users = await User.find().select('-password -refreshToken -verifyToken -passwordHistory -resetPasswordToken -resetPasswordExpires');
+            if (!users || users.length === 0) {
                 return res.status(404).json({ message: 'No users found' });
             }
     
@@ -165,9 +208,11 @@ const userController = {
         }
     },
 
+    // Method: GET
+    // Path: /user/all
     getAllUsers: async (req, res) => {
         try {
-            const users = await User.find().select('-password -refreshToken -passwordHistory');
+            const users = await User.find().select('username email role experience createdAt');
             if (!users || users.length === 0) {
                 return res.status(404).json({ message: 'No users found' });
             }
@@ -180,10 +225,12 @@ const userController = {
         }
     },
 
+    // Method: GET
+    // Path: /user/:id
     getUserById: async (req, res) => {
         try {
             const userId = req.params.id;
-            const user = await User.findById(userId).select('-password -refreshToken -passwordHistory');
+            const user = await User.findById(userId).select('username email role experience createdAt isVerified -_id');
             if (!user) {
                 return res.status(404).json({ message: 'User not found' });
             }
@@ -193,6 +240,8 @@ const userController = {
         }
     },
 
+    // Method: GET
+    // Path: /user/profile
     getProfile: async (req, res) => {
         try {
             const userId = req.user._id;
@@ -207,9 +256,11 @@ const userController = {
         }
     },
 
+    // Method: GET
+    // Path: /user/experience
     getExperienceAllUsers: async (req, res) => {
         try {
-            const users = await User.find().select('-password -refreshToken');
+            const users = await User.find().select('username experience role -_id');
             if (!users || users.length === 0) {
                 return res.status(404).json({ message: 'No users found' });
             }
@@ -226,27 +277,13 @@ const userController = {
         }
     },
 
-    determineRole: async (req, res) => {
-        try {
-            const user = await User.findById(req.user._id).select('-password -refreshToken');
-            if (!user) {
-                return res.status(400).json({ message: 'User not found' });
-            }
-            if (user.role === 'user') {
-                return res.status(200).json({ message: 'You\'re user', role: 'user' });
-            } else if (user.role === 'admin') {
-                return res.status(200).json({ message: 'You\'re admin', role: 'admin' });
-            }
-        } catch (error) {
-            return res.status(500).json({ message: error.message });
-        }
-    },
-
+    // Method: PUT
+    // Path: /user/profile
     updateProfile: async (req, res) => {
         try {
             const userId = req.user._id;
             const { username, password } = req.body;
-            const user = await User.findById(userId).select('-refreshToken -passwordHistory -loginAttempts');
+            const user = await User.findById(userId).select('username password role experience createdAt _id');
     
             if (!user){
                 return res.status(404).json({ error: 'User not found' });
@@ -287,6 +324,62 @@ const userController = {
         }
     },
 
+    // Method: GET
+    // Path: /user/verify-email/:token
+    verifyEmail: async (req, res) => {
+        try {
+            const token = req.params.token;
+            const user = await User.findOne({ verifyToken: token });
+            if (!user) {
+                console.log('Invalid token');
+                return res.redirect(`${process.env.CLIENT_URL}/verify-email/failed`);
+            }
+            user.isVerified = true;
+            user.verifyToken = '';
+            await user.save();
+            res.clearCookie('verificationToken');
+            console.log('Email verified successfully');
+            return res.redirect(`${process.env.CLIENT_URL}/verify-email/success`);
+            
+        } catch (error) {
+            return res.status(500).json({ message: error.message });
+        }
+    },
+
+    // Method: POST
+    // Path: /user/resend-email
+    resendEmail: async (req, res) => {
+        try {
+            const email = req.body.email;
+            console.log(email);
+            const user = await User.findOne({ email });
+            if (!user) {
+                return res.status(404).json({ message: 'User not found' });
+            }
+
+            if (user.isVerified) {
+                return res.status(400).json({ message: 'Email already verified' });
+            }
+
+            let verificationToken = crypto.randomBytes(32).toString('hex');
+            user.verifyToken = verificationToken;
+            await user.save();
+            res.cookie('verificationToken', verificationToken, { httpOnly: true, secure: true, sameSite: 'Lax', maxAge: 1000 * 60 * 60 * 2 });
+
+            // send verification email
+            const verificationUrl = `${process.env.SERVER_URL}/user/verify-email/${verificationToken}`;
+            const html = `<p>Please click <a href="${verificationUrl}">here</a> to verify your email address.</p>`;
+            console.log(html);
+            await sendMail(email, 'Verify your email address', html);
+
+            return res.status(200).json({ message: 'Verification email sent successfully' });
+        } catch (error) {
+            return res.status(500).json({ message: error.message });
+        }
+    },
+
+    // Method: PUT
+    // Path: /user/change-password
     changePassword: async (req, res) => {
 
         try {
@@ -338,10 +431,128 @@ const userController = {
         }
     },
 
+
+    // Method: POST
+    // Path: /user/forgot-password
+    forgotPassword: async (req, res) => {
+        try {
+            const start = Date.now(); 
+            const FORGOT_PASSWORD_RESPONSE_DELAY = 3000;
+
+            const { email } = req.body;
+            if (!email) {
+                return res.status(400).json({ message: 'Email is required' });
+            }
+    
+            const user = await User.findOne({ email });
+            const token = user ? crypto.randomBytes(32).toString('hex') : null;
+    
+            if (user && user.isVerified) {
+                user.resetPasswordToken = token;
+                user.resetPasswordExpires = Date.now() + 1000*60*20; // 20 minutes
+                await user.save();
+    
+                const resetUrl = `${process.env.CLIENT_URL}/reset-password/${token}`;
+                const html = `<p>Please click <a href="${resetUrl}">here</a> to reset your password.</p>`;
+                console.log(html);
+                await sendMail(email, 'Reset your password', html);
+            }
+    
+            // Calculate the time taken so far
+            const timeTaken = Date.now() - start;
+            const delay = Math.max(0, FORGOT_PASSWORD_RESPONSE_DELAY - timeTaken);
+
+            // Add an artificial delay to equalize the response time
+            setTimeout(() => {
+                return res.status(200).json({ message: 'Reset link sent to your email' });
+            }, delay);
+    
+        } catch (error) {
+            return res.status(500).json({ message: error.message });
+        }
+    },
+
+    // Method: POST
+    // Path: /user/reset-password/:token
+    resetPassword: async (req, res) => {
+        try {
+            const { password, confirmPassword } = req.body;
+            const resetToken = req.params.token;
+            if (!password || !confirmPassword) {
+                return res.status(400).json({ message: 'All fields are required' });
+            }
+    
+            if (password !== confirmPassword) {
+                return res.status(400).json({ message: 'Password does not match' });
+            }
+
+            if (!validator.isStrongPassword(password)) {
+                return res.status(400).json({ message: 'Password is too weak' });
+            }
+    
+            const user = await User.findOne({
+                resetPasswordToken: resetToken,
+                resetPasswordExpires: { $gt: Date.now() }
+            });
+    
+            if (!user) {
+                return res.status(400).json({ message: 'Invalid or expired token' });
+            }
+    
+            // check new password is in the password history
+            let isInPasswordHistory = false;
+            for (const oldPassword of user.passwordHistory) {
+                const isMatch = await bcrypt.compare(password, oldPassword);
+                if (isMatch) {
+                    isInPasswordHistory = true;
+                    break;
+                }
+            };
+    
+            if (isInPasswordHistory) {
+                return res.status(400).json({ message: 'Password has been used before' });
+            }
+
+            // update password
+            user.password = password;
+            user.resetPasswordToken = undefined;
+            user.resetPasswordExpires = undefined;
+            await user.save();
+
+            return res.status(200).json({ message: 'Password reset successfully' });
+    
+        } catch (error) {
+            return res.status(500).json({ message: error.message });
+        }
+    },
+
+    // Method: POST
+    // Path: /user/validate-reset-token
+    validateResetToken: async (req, res) => {
+        const { token } = req.body;
+        // console.log(token);
+        try {
+            const user = await User.findOne({
+                resetPasswordToken: token,
+                resetPasswordExpires: { $gt: Date.now() }
+            });
+
+            if (!user) {
+                return res.status(400).json({ message: 'Invalid or expired token' });
+            }
+
+            res.status(200).json({ message: 'Token is valid' });
+        } catch (error) {
+            res.status(500).json({ message: 'Internal server error' });
+        }
+    },
+
     updateExperience: async (req, res) => {
     
     },
 
+    // Method: PUT
+    // Path: /user/edit/:id
     adminChangeUserRoleAndExperience: async (req, res) => {
         try {
             const userId = req.params.id;
@@ -349,7 +560,7 @@ const userController = {
             const user = await User.findOneAndUpdate(
                 { _id: userId }, 
                 { $set: { role, experience } }, 
-                { new: true } 
+                { new: true, select: 'username email role experience createdAt -_id' } 
             );
             
             if (!user) {
@@ -363,6 +574,8 @@ const userController = {
         }
     },
 
+    // Method: DELETE
+    // Path: /user/users
     selfDeleteAccount: async (req, res) => {
         try {
             await User.findByIdAndDelete(req.user._id);
@@ -372,6 +585,8 @@ const userController = {
         }
     },
 
+    // Method: DELETE
+    // Path: /user/delete/:id
     adminDeleteAccount: async (req, res) => {
         try {
             const userId = req.params.id;
@@ -382,6 +597,8 @@ const userController = {
         }
     },
 
+    // Method: DELETE
+    // Path: /user/deleteMany
     adminDeleteManyAccount: async (req, res) => {
         try {
             const userIds = req.body.ids;
@@ -392,6 +609,8 @@ const userController = {
         }
     },
 
+    // Method: POST
+    // Path: /user/refresh-token
     refreshToken: async (req, res) => {
         try {
             const refreshToken = req.cookies.refreshToken;
@@ -418,6 +637,8 @@ const userController = {
         }
     },
 
+    // Method: GET
+    // Path: /user/check-login
     checkLogin: async (req, res) => {
         try {
             const token = req.cookies.accessToken;
@@ -425,7 +646,7 @@ const userController = {
                 return res.status(401).json({ message: 'You need to login' });
             }
             const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-            const user = await User.findById(decoded._id).select('-password -refreshToken -passwordHistory -loginAttempts');
+            const user = await User.findById(decoded._id).select('username email role isVerified experience createdAt -_id');
             if (!user) {
                 return res.status(404).json({ message: 'User not found' });
             }

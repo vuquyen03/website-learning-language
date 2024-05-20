@@ -20,6 +20,11 @@ const courseSchema = new Schema({
         },
         trim: true,
     },
+    image: {
+        type: String,
+        trim: true,
+        default: '',
+    },
     quiz: [
         {
             type: Schema.Types.ObjectId,

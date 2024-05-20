@@ -9,6 +9,7 @@ import { checkStatus } from '../redux/actions/userActions';
  */
 const useUserStatus = () => {
     const loggedIn = useSelector(state => state.user.loggedIn);
+    const userData = useSelector(state => state.user.userData);
     const dispatch = useDispatch();
     const [isLoading, setIsLoading] = useState(true);
 
@@ -25,7 +26,7 @@ const useUserStatus = () => {
         fetchData();
     }, [dispatch]);
 
-    return { loggedIn, isLoading };
+    return { loggedIn, isLoading, userData };
 };
 
 export default useUserStatus;

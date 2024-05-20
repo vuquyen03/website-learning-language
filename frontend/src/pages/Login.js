@@ -6,8 +6,7 @@ import { AiOutlineLoading } from 'react-icons/ai';
 import { FaExclamationCircle } from 'react-icons/fa';
 import axios from 'axios';
 import { useDispatch, useSelector } from 'react-redux';
-import { CircularProgress } from '@mui/material';
-import { checkStatus, setUserRole, checkRole } from '../redux/actions/userActions';
+import { checkStatus, setUserRole } from '../redux/actions/userActions';
 import { jwtDecode } from "jwt-decode";
 import DOMPurify from 'dompurify';
 import ReCAPTCHA from "react-google-recaptcha";
@@ -21,48 +20,29 @@ const Login = () => {
     const [errorMessage, setErrorMessage] = useState(''); // state for displaying error message
     const [rateLitmit, setRateLimit] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [checking, setChecking] = useState(true); // State for checking login status
     const formRef = useRef(null); // Reference to the form element
     const recaptchaRef = useRef(null); // Reference to the reCAPTCHA element
-    const [redirectAdminPanel, setRedirectAdminPanel] = useState(false); // State for redirecting to admin panel
     const dispatch = useDispatch();
     const [isVerified, setIsVerified] = useState(true);
     const loggedIn = useSelector(state => state.user.loggedIn);
-    const userRole = useSelector(state => state.user.userRole);
+    const userData = useSelector(state => state.user.userData);
     const [numberOfLoginAttempts, setNumberOfLoginAttempts] = useState(0);
 
 
     useEffect(() => {
-        const fetchUserRole = async () => {
-            await dispatch(checkRole());
-            setRedirectAdminPanel(true);
-        };
-
         const checkLoginStatus = async () => {
             await dispatch(checkStatus());
-            setChecking(false);
         };
 
         checkLoginStatus();
-
-        if (loggedIn) {
-            fetchUserRole();
-        }
     });
 
-    // if (checking) {
-    //     return (
-    //         <div className="flex justify-center items-center h-screen">
-    //             <CircularProgress />
-    //         </div>
-    //     )
-
-    // }
-    
-    if (loggedIn && userRole !== 'admin') {
-        return <Navigate to="/dashboard" />;
-    } else if (redirectAdminPanel && userRole === 'admin') {
-        return <Navigate to="/adminPanel" />;
+    if (userData != null) {
+        if (loggedIn && userData.role !== 'admin') {
+            return <Navigate to="/dashboard" />;
+        } else if (userData.role === 'admin') {
+            return <Navigate to="/adminPanel" />;
+        }
     }
 
     const handleRecaptchaChange = (value) => {
@@ -108,13 +88,13 @@ const Login = () => {
                 );
     
                 if (response.status === 200) {
+                    const csrfToken = await axios.get(process.env.REACT_APP_API_URL + '/csrf-token', { withCredentials: true });
+                    localStorage.setItem('csrfToken', csrfToken.data.csrfToken);
+
                     const expirationTime = jwtDecode(response.data.accessToken).exp;
                     localStorage.setItem('expirationTime', expirationTime);
                     dispatch(setUserRole(response.data.user.role));
                     console.log(response.data.user.role);
-                    if (response.data.role === 'admin') {
-                        setRedirectAdminPanel(true);
-                    }
                 }
                 setLoading(false);
     
@@ -153,8 +133,7 @@ const Login = () => {
             <form
                 ref={formRef}
                 onSubmit={handleSubmit}
-                className="form-container-style"
-            >
+                className="form-container-style">
                 <img
                     src={logo}
                     alt="HustEdu Logo"

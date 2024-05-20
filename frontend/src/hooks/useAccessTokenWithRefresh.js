@@ -12,12 +12,10 @@ const useAccessTokenWithRefresh = () => {
 
     useEffect(() => {
         const refreshToken = async () => {
-            console.log("Calling Refresh Token")
+            // console.log("Calling Refresh Token")
             try {
                 const currentTime = new Date(Date.now());
                 const expirationTime = localStorage.getItem("expirationTime");
-
-                console.log(currentTime / 1000, expirationTime - 60 * 2)
 
                 if ((currentTime / 1000 > expirationTime - 60 * 2) && expirationTime) {
                     try {
@@ -38,6 +36,9 @@ const useAccessTokenWithRefresh = () => {
         const interval = setInterval(() => {
             refreshToken();
         }, 1000 * 60 * 1);
+
+        // Run once when the component is mounted
+        refreshToken();
 
         return () => clearInterval(interval); 
     }, [dispatch, accessTokenDone]);

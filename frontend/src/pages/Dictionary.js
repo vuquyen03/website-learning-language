@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import useUserStatus from '../hooks/useUserStatus';
 import axios from 'axios';
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
+import { useSelector } from 'react-redux';
 
 const Dictionary = () => {
-    const { loggedIn } = useUserStatus();
+    const loggedIn = useSelector(state => state.user.loggedIn);
     const [searchTerm, setSearchTerm] = useState('');
     const [meanings, setMeanings] = useState({});
     const [pronunciation, setPronunciation] = useState([]);

@@ -27,6 +27,7 @@ const UserList = (props) => {
                     <TextField source="id" />
                     <TextField source="username" />
                     <EmailField source="email" />
+                    <TextField source="isVerified" />
                     <TextField source="role" />
                     <NumberField source="experience" />
                     <DateField source="createdAt" />

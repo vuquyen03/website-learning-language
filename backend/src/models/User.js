@@ -22,6 +22,21 @@ const userSchema = new Schema({
         unique: true,
         match: [/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}/, 'Must match an email address!'],
     },
+    isVerified: {
+        type: Boolean,
+        default: false,
+    },
+    verifyToken:{
+        type: String,
+        default: '',
+    },
+    resetPasswordToken: {
+        type: String,
+        default: '',
+    },
+    resetPasswordExpires: {
+        type: Date,
+    },
     password: {
         type: String,
         required: true,
@@ -80,13 +95,46 @@ userSchema.methods.isCorrectPassword = async function (password) {
 // generate access token
 userSchema.methods.generateAccessToken = function () {
     const payload = { _id: this._id, email: this.email };
-    return jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: process.env.ACCESS_TOKEN_EXPIRY });
-}
+    const secret = process.env.ACCESS_TOKEN_SECRET;
+    const expiresIn = process.env.ACCESS_TOKEN_EXPIRY;
+
+    if (!secret) {
+        throw new Error('ACCESS_TOKEN_SECRET is not defined in environment variables');
+    }
+
+    if (!expiresIn) {
+        throw new Error('ACCESS_TOKEN_EXPIRY is not defined in environment variables');
+    }
+
+    try {
+        return jwt.sign(payload, secret, { expiresIn });
+    } catch (error) {
+        console.error('Error signing the access token:', error);
+        throw new Error('Access token signing failed');
+    }
+};
+
 // generate refresh token
 userSchema.methods.generateRefreshToken = function () {
     const payload = { _id: this._id, email: this.email };
-    return jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, { expiresIn: process.env.REFRESH_TOKEN_EXPIRY });   
-}
+    const secret = process.env.REFRESH_TOKEN_SECRET;
+    const expiresIn = process.env.REFRESH_TOKEN_EXPIRY;
+
+    if (!secret) {
+        throw new Error('REFRESH_TOKEN_SECRET is not defined in environment variables');
+    }
+
+    if (!expiresIn) {
+        throw new Error('REFRESH_TOKEN_EXPIRY is not defined in environment variables');
+    }
+
+    try {
+        return jwt.sign(payload, secret, { expiresIn });
+    } catch (error) {
+        console.error('Error signing the refresh token:', error);
+        throw new Error('Refresh token signing failed');
+    }
+};
 
 const User = model('User', userSchema)
 

@@ -2,7 +2,7 @@ import { NavLink } from "react-router-dom";
 import logo from "../assets/HustEdu.png";
 import { sidebarNavItems } from "../constants/constants";
 import { FiLogOut } from 'react-icons/fi';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { logout } from '../redux/actions/userActions';
 
 

@@ -1,14 +1,20 @@
 import logo from '../assets/HustEdu.png';
 import axios from 'axios';
-import { Link, Navigate } from 'react-router-dom';
+import { AiOutlineLoading } from 'react-icons/ai';
+import { FaExclamationCircle } from 'react-icons/fa';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useEffect, useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { checkStatus } from '../redux/actions/userActions';
+import DOMPurify from 'dompurify';
+import Swal from 'sweetalert2';
 
 const ForgotPassword = () => {
     const formRef = useRef(null);
     const [errorMessage, setErrorMessage] = useState(''); 
     const [loading, setLoading] = useState(false);
+    const navigate = useNavigate();
+
 
     const dispatch = useDispatch();
     const loggedIn = useSelector(state => state.user.loggedIn);
@@ -26,6 +32,41 @@ const ForgotPassword = () => {
     }
 
     const handleSubmit = async (e) => {
+        e.preventDefault();
+
+        const formData = new FormData(formRef.current);
+        const inputData = Object.fromEntries(formData.entries());
+        const email = DOMPurify.sanitize(inputData.email);
+
+        const emailRegex = /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}/
+        if (!emailRegex.test(email)) {
+            setErrorMessage('Invalid email address');
+            return;
+        }
+        
+        try {
+            setLoading(true);
+            const response = await axios.post(
+                process.env.REACT_APP_API_URL + '/user/forgot-password',
+                { email: email },
+                { withCredentials: true }
+            );
+            if (response.status === 200) {
+                Swal.fire({
+                    title: 'Success',
+                    text: 'A reset password link has been sent to your email.',
+                    icon: 'success',
+                    confirmButtonText: 'OK'
+                }).then((result) => {
+                    navigate('/login');
+                });
+            }
+        } catch (error) {
+            console.error('Error sending email:', error);
+            setErrorMessage('Error sending email. Please try again later.');
+        } finally {
+            setLoading(false);
+        }
 
     };
 
@@ -60,14 +101,21 @@ const ForgotPassword = () => {
                             name="email"
                             placeholder="Email"
                             required
-                        />
-                    </div>
+                        />    
+                    </div>          
                 </div>
+
+                {errorMessage && (
+                    <p className="text-red-500 mt-6 inline-flex items-center text-sm text-center">
+                        <FaExclamationCircle className="mr-1" />
+                        {errorMessage}
+                    </p>
+                )}  
 
                 <button
                     className="w-full mt-6 py-3 px-6 bg-primary hover:bg-primary-shade text-white font-bold rounded-xl"
                     type="submit">
-                    Send email
+                    {loading ? <AiOutlineLoading className="animate-spin h-6 w-6 mx-auto"/> : 'Send email'}
                 </button>
 
                 <p className="w-full flex flex-col gap-4">

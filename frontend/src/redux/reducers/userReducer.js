@@ -16,5 +16,8 @@ export const userReducer = createReducer(initialState, (builder) => {
     })
     .addCase("SET_EXPIRATION_TIME", (state, action) => {
       state.expirationTime = action.payload;
+    })
+    .addCase("SET_USER_DATA", (state, action) => {
+      state.userData = action.payload;
     });
 });

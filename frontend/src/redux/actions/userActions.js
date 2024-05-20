@@ -13,6 +13,13 @@ export const setUserRole = (role) => ({
     payload: role,
 });
 
+export const setUserData = (userData) => {
+    return {
+        type: 'SET_USER_DATA',
+        payload: userData
+    }
+}
+
 export const setExpirationTime = (expirationTime) => {
     localStorage.setItem('expirationTime', expirationTime);
     return {
@@ -26,6 +33,7 @@ export const checkStatus = () => async dispatch => {
         const response = await axios.get(process.env.REACT_APP_API_URL + '/user/check-login', { withCredentials: true });
         if (response.status === 200) {
             dispatch(setLoggedIn(true));
+            dispatch(setUserData(response.data.user));
         }
     } catch (error) {
         console.error('Error checking login status:', error);
@@ -34,11 +42,22 @@ export const checkStatus = () => async dispatch => {
 
 export const logout = () => async dispatch => {
     try {
-        const response = await axios.post(process.env.REACT_APP_API_URL + '/user/logout', null, { withCredentials: true });
+        const response = await axios.post(process.env.REACT_APP_API_URL + '/user/logout',
+            null,
+            {
+                withCredentials: true,
+                headers: {
+                    'X-CSRF-Token': localStorage.getItem('csrfToken'),
+                }
+            },
+        );
+        console.log(response)
         if (response.status === 200) {
             dispatch(setLoggedIn(false));
             dispatch(setUserRole(null)); // Clear user role
+            dispatch(setUserData(null)); // Clear user data
             localStorage.removeItem('expirationTime');
+            localStorage.removeItem('csrfToken')
         }
     } catch (error) {
         console.log('Error logging out:', error);
@@ -56,14 +75,3 @@ export const refreshAccessToken = () => async dispatch => {
         console.error('Error refreshing token:', error);
     }
 };
-
-export const checkRole = () => async dispatch => {
-    try {
-        const response = await axios.get(process.env.REACT_APP_API_URL + '/user/role', { withCredentials: true });
-        if (response.status === 200) {
-            dispatch(setUserRole(response.data.role));
-        }
-    } catch (error) {
-        console.error('Error fetching user role:', error);
-    }
-}

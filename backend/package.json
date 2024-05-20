@@ -8,18 +8,26 @@
     "bson": "^6.6.0",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
+    "csurf": "^1.11.0",
     "debug": "^4.3.4",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "express-rate-limit": "^7.2.0",
+    "firebase": "^10.12.0",
+    "firebase-admin": "^12.1.0",
     "google-recaptcha": "^1.1.0",
+    "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.3.0",
     "mongodb-connection-string-url": "^3.0.0",
     "mongoose": "^8.2.4",
     "morgan": "^1.10.0",
     "mpath": "^0.9.0",
-    "sparse-bitfield": "^3.0.3"
+    "multer": "^1.4.5-lts.1",
+    "nodemailer": "^6.9.13",
+    "sparse-bitfield": "^3.0.3",
+    "uuid": "^9.0.1",
+    "validator": "^13.12.0"
   },
   "scripts": {
     "start": "nodemon server.js"

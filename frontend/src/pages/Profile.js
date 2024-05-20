@@ -6,6 +6,7 @@ import useUserStatus from '../hooks/useUserStatus';
 import axios from 'axios';
 import dateFormat from '../util/dateFormat';
 import escapeHTML from '../util/escapeHTML';
+import { useSelector } from 'react-redux';
 
 const Profile = () => {
     const { loggedIn, isLoading } = useUserStatus();
@@ -16,47 +17,35 @@ const Profile = () => {
     const [submitLoading, setSubmitLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
     const formRef = useRef(null);
+    const userData = useSelector(state => state.user.userData);
 
     useEffect(() => {
-        const fetchProfile = async () => {
-            try {
-                if (loggedIn) {
-                    const response = await axios.get(`${process.env.REACT_APP_API_URL}/user/profile`, { withCredentials: true });
-                    // console.log(response)
-                    const escapedData = {
-                        ...response.data.user,
-                        username: escapeHTML(response.data.user.username),
-                        email: escapeHTML(response.data.user.email)
-                    };
-                    setProfileData(escapedData);
-                } else {
-                    setProfileData(null);
-                }
-            } catch (error) {
-                console.error("Error fetching profile data:", error);
-            } finally {
-                setFetchProfileDone(true);
-            }
-        };
+        if (userData == null) return;
+        
+        const escapedData = {
+            ...userData,
+            username: escapeHTML(userData.username),
+            email: escapeHTML(userData.email)
+        }
+        setProfileData(escapedData);
+    },[]);
 
-        setFetchProfileDone(false);
-        fetchProfile();
-    }, [loggedIn]);
 
     // console.log("Profile data:", profileData)
     // console.log("Fetch profile done:", fetchProfileDone)
     // console.log("Loading:", isLoading)
 
-    if (isLoading || !fetchProfileDone || profileData == null) {
+    
+    if (!loggedIn || profileData == null) {
+        return <Navigate to="/login" />;
+    }
+
+    if (isLoading) {
         return (
             <div className="flex justify-center items-center h-screen">
                 <CircularProgress />
             </div>
         );
-    }
-
-    if (!loggedIn) {
-        return <Navigate to="/login" />;
     }
 
     const firstLetter = profileData.username?.charAt(0).toUpperCase();

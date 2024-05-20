@@ -84,8 +84,11 @@ const Signup = () => {
                         case 'Password does not match':
                             setErrorMessage('Password does not match');
                             break;
-                        case 'Password must be at least 6 characters':
-                            setErrorMessage('Password must be at least 6 characters');
+                        case 'Password is too weak':
+                            setErrorMessage('Password must be 8+ characters with uppercase, lowercase, number, and special character');
+                            break;
+                        case 'reCAPTCHA verification failed':
+                            setErrorMessage('Please verify that you are not a robot');
                             break;
                         default:
                             setErrorMessage('Something went wrong');
