@@ -19,8 +19,9 @@ const Signup = () => {
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const formRef = useRef(null);
     const [isVerified, setIsVerified] = useState(false);
+    const formRef = useRef(null);
+    const recaptchaRef = useRef(null);
 
     const dispatch = useDispatch();
     const loggedIn = useSelector(state => state.user.loggedIn);
@@ -46,18 +47,19 @@ const Signup = () => {
         const formData = new FormData(formRef.current);
         const inputData = Object.fromEntries(formData.entries());
 
-        console.log(inputData);
-
         if (isVerified){
             try {
                 setIsLoading(true);
                 const response = await axios.post(
                     process.env.REACT_APP_API_URL + '/user/register',
                     inputData,
-                    { withCredentials: true }
+                    { withCredentials: true, timeout: 5000}
                 );
                 console.log(response);
                 if (response.status === 201) {
+                    const csrfToken = response.headers['x-csrf-token'];
+                    localStorage.setItem('csrfToken', csrfToken);
+
                     // Set user role in Redux
                     await dispatch(setUserRole(response.data.user.role));
                     console.log(response.data.user.role);
@@ -67,37 +69,30 @@ const Signup = () => {
                 setIsLoading(false);
     
                 // set error message based on error message from server
-                // username or email already exists, password shorter than 6 characters
-                if (error.response && error.response.data && error.response.data.error) {
-                    const errorMessage = error.response.data.error;
-    
-                    switch (errorMessage) {
-                        case 'Username already exists':
-                            setErrorMessage('Username already exists');
-                            break;
-                        case 'Email already exists':
-                            setErrorMessage('Email already exists');
-                            break;
-                        case 'Email must be a valid address':
-                            setErrorMessage('Email must be a valid address');
-                            break;
-                        case 'Password does not match':
-                            setErrorMessage('Password does not match');
-                            break;
-                        case 'Password is too weak':
-                            setErrorMessage('Password must be 8+ characters with uppercase, lowercase, number, and special character');
-                            break;
-                        case 'reCAPTCHA verification failed':
-                            setErrorMessage('Please verify that you are not a robot');
-                            break;
-                        default:
-                            setErrorMessage('Something went wrong');
-                            break;
-                    }
-                } else {
-                    setErrorMessage('Something went wrong');
+                let errorMessage = error.response.data.message;
+                switch (errorMessage) {
+                    case undefined || null:
+                        errorMessage = 'Something went wrong';
+                        break;
+                    case 'Password is too weak':
+                        errorMessage = 'Password must be 8+ characters with uppercase, lowercase, number, and special character';
+                        break;
+                    case 'reCAPTCHA verification failed':
+                        errorMessage = 'Please verify that you are not a robot';
+                        break;
+                    default:
+                        break;
                 }
-            }
+
+                if (isVerified) {
+                    setIsVerified(false);
+                    recaptchaRef.current.reset();
+                }
+                
+                setErrorMessage(errorMessage);
+
+            } 
+
         } else {
             setErrorMessage('Please verify that you are not a robot');
         }
@@ -220,6 +215,7 @@ const Signup = () => {
                 )}
 
                 <ReCAPTCHA
+                    ref={recaptchaRef}
                     className="mt-3"
                     sitekey={process.env.REACT_APP_RECAPTCHA_SITE_KEY}
                     onChange={handleRecaptchaChange}

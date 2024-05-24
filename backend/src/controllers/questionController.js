@@ -2,6 +2,8 @@ import Question from "../models/Question.js";
 import Quiz from "../models/Quiz.js";
 
 const questionController = {
+    // Method: POST
+    // Path: /question/
     createQuestion: async (req, res) => {
         try {
             const { question, correctOption, incorrectOptions } = req.body;
@@ -14,6 +16,8 @@ const questionController = {
         }
     },
 
+    // Method: GET
+    // Path: /question/
     getAllQuestionsReference: async (req, res) => {
         try {
             const questions = await Question.find();
@@ -37,6 +41,8 @@ const questionController = {
         }
     },
 
+    // Method: GET
+    // Path: /question/all
     getAllQuestions: async (req, res) => {
         try {
             const questions = await Question.find().populate('quiz', 'title');
@@ -50,6 +56,8 @@ const questionController = {
         }
     },
 
+    // Method: GET
+    // Path: /question/many
     getManyQuestions: async (req, res) => {
         try {
             const questionIds = req.query.ids;
@@ -68,6 +76,8 @@ const questionController = {
         }
     },
 
+    // Method: GET
+    // Path: /question/:id
     getQuestionById: async (req, res) => {
         try {
             const questionId = req.params.id;
@@ -82,6 +92,8 @@ const questionController = {
         }
     },
 
+    // Method: PUT
+    // Path: /question/edit/:id
     updateQuestionById: async (req, res) => {
         try {
             const questionId = req.params.id;
@@ -114,6 +126,8 @@ const questionController = {
         }
     },
 
+    // Method: DELETE
+    // Path: /question/delete/:id
     deleteQuestionById: async (req, res) => {
         try {
             const questionId = req.params.id;
@@ -133,6 +147,8 @@ const questionController = {
         }
     },
 
+    // Method: DELETE
+    // Path: /question/deleteMany
     deleteManyQuestions: async (req, res) => {
         try {
             const questionIds = req.body.ids;

@@ -3,6 +3,9 @@ import Quiz from "../models/Quiz.js";
 import Question from "../models/Question.js";
 
 const quizController = {
+    
+    // Method: POST
+    // Path: /quiz/
     createQuiz: async (req, res) => {
         try {
             const { title, course, description } = req.body;
@@ -23,6 +26,8 @@ const quizController = {
         }
     },
 
+    // Method: GET
+    // Path: /quiz/
     getAllQuizzes: async (req, res) => {
         try {
             const quizzes = await Quiz.find().populate('course', 'courseTitle');
@@ -46,6 +51,8 @@ const quizController = {
         }
     },
 
+    // Method: GET
+    // Path: /quiz/many
     getManyQuizzes: async (req, res) => {
         try {
             const quizIds = req.query.ids;
@@ -64,6 +71,8 @@ const quizController = {
         }
     },
 
+    // Method: GET
+    // Path: /quiz/:id
     getQuizById: async (req, res) => {
         try {
             const quizId = req.params.id;
@@ -78,6 +87,24 @@ const quizController = {
         }
     },
 
+    // Method: GET
+    // Path: /quiz/questions/:id
+    getQuestionsByQuizId: async (req, res) => {
+        try {
+            const quizId = req.params.id;
+            const quiz = await Quiz.findById(quizId).populate('question').select('title question');
+            if (!quiz) {
+                return res.status(404).json({ message: 'Quiz not found' });
+            }
+            
+            return res.status(200).json(quiz);
+        } catch (error) {
+            return res.status(500).json({ message: error.message });
+        }
+    },
+
+    // Method: PUT
+    // Path: /quiz/edit/:id
     updateQuizById: async (req, res) => {
         try {
             const quizId = req.params.id;
@@ -110,6 +137,8 @@ const quizController = {
         }
     },
 
+    // Method: DELETE
+    // Path: /quiz/delete/:id
     deleteQuizById: async (req, res) => {
         try {
             const quizId = req.params.id;
@@ -125,15 +154,18 @@ const quizController = {
             );
 
             await Quiz.findByIdAndDelete(quizId);
+            return res.status(200).json({ message: 'Quiz deleted successfully' });
         } catch (error) {
             return res.status(500).json({ message: error.message });
         }
     },
 
+    // Method: DELETE
+    // Path: /quiz/deleteMany
     deleteManyQuizzes: async (req, res) => {
         try {
             const quizIds = req.body.ids;
-            // Kiểm tra nếu quizIds không phải một mảng, chuyển đổi thành mảng
+
             if (!Array.isArray(quizIds)) {
                 quizIds = [quizIds];
             }

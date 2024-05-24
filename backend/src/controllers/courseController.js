@@ -1,6 +1,7 @@
 import Course from '../models/Course.js';
 import Quiz from '../models/Quiz.js';
 import { bucket } from '../config/firebaseConnection.js';
+import { fileTypeFromBuffer } from 'file-type';
 import { v4 as uuidv4 } from 'uuid';
 
 const courseController = {
@@ -14,6 +15,11 @@ const courseController = {
             const file = req.file;
             console.log("file:", file)
             if(file) {
+                const fileType = await fileTypeFromBuffer(file.buffer);
+                if (!fileType || !['image/jpeg', 'image/png', 'image/gif'].includes(fileType.mime)) {
+                    return res.status(400).json({ message: 'Invalid file type. Only JPEG, PNG, and GIF are allowed.' });
+                }
+
                 const blob = bucket.file(uuidv4());
                 const blobStream = blob.createWriteStream({
                     metadata: {
@@ -144,6 +150,11 @@ const courseController = {
             const file = req.file;
             // console.log("File:", file)
             if (file) {
+                const fileType = await fileTypeFromBuffer(file.buffer);
+                if (!fileType || !['image/jpeg', 'image/png', 'image/gif'].includes(fileType.mime)) {
+                    return res.status(400).json({ message: 'Invalid file type. Only JPEG, PNG, and GIF are allowed.' });
+                }
+
                 const blob = bucket.file(uuidv4());
                 const blobStream = blob.createWriteStream({
                     metadata: {

@@ -58,11 +58,12 @@ const Login = () => {
 
         const formData = new FormData(formRef.current);
         const inputData = Object.fromEntries(formData.entries());
-        console.log("Email:", inputData.email);
-        console.log("Password:",inputData.password);
         const email = DOMPurify.sanitize(inputData.email);
+
+        console.log("Email:", email, "--------------");
         
-        const emailRegex = /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}/
+        const emailRegex = /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}/;
+
         if (!emailRegex.test(email)) {
             setErrorMessage('Invalid email format');
             return;
@@ -72,11 +73,6 @@ const Login = () => {
             setErrorMessage('Too many login attempts, please try again after 15 minutes');
             return;
         }
-
-        if(numberOfLoginAttempts >= 5 && isVerified && !rateLitmit){
-            setIsVerified(false);
-            recaptchaRef.current.reset();
-        }
         
         if(isVerified){
             try {
@@ -84,12 +80,12 @@ const Login = () => {
                 const response = await axios.post(
                     process.env.REACT_APP_API_URL + '/user/login',
                     inputData,
-                    { withCredentials: true }
+                    { withCredentials: true, timeout: 5000}
                 );
     
                 if (response.status === 200) {
-                    const csrfToken = await axios.get(process.env.REACT_APP_API_URL + '/csrf-token', { withCredentials: true });
-                    localStorage.setItem('csrfToken', csrfToken.data.csrfToken);
+                    const csrfToken = response.headers['x-csrf-token'];
+                    localStorage.setItem('csrfToken', csrfToken);
 
                     const expirationTime = jwtDecode(response.data.accessToken).exp;
                     localStorage.setItem('expirationTime', expirationTime);
@@ -101,15 +97,17 @@ const Login = () => {
             } catch (error) {
                 setNumberOfLoginAttempts(numberOfLoginAttempts + 1);
                 setLoading(false);
+                
+                let errorMessage = error.response.data.message;
                 switch (true) {
-                    case error.response.data.error.includes('Incorrect Email or Password'):
+                    case errorMessage.includes('Incorrect Email or Password'):
                         setErrorMessage('Incorrect credentials');
                         break;
-                    case error.response.data.error.includes('Please complete the reCAPTCHA'):
+                    case errorMessage.includes('Please complete the reCAPTCHA'):
                         setErrorMessage('Please complete the reCAPTCHA');
                         setNumberOfLoginAttempts(5);
                         break;
-                    case error.response.data.error.includes('Too many login attempts from this IP, please try again after 15 minutes'):
+                    case errorMessage.includes('Too many login attempts from this IP, please try again after 15 minutes'):
                         setErrorMessage('Too many login attempts, please try again after 15 minutes');
                         setRateLimit(true);
                         break;
@@ -117,8 +115,19 @@ const Login = () => {
                         setErrorMessage('Something went wrong');
                         break;
                 }
+
+                if (numberOfLoginAttempts >= 5 && isVerified && !rateLitmit) {
+                    console.log("Number of login attempts:", numberOfLoginAttempts);
+                    console.log("isVerified:", isVerified);
+                    console.log("rateLimit:", rateLitmit);
+                    setIsVerified(false);
+                    recaptchaRef.current.reset();
+                }
+
                 console.error('Lỗi đăng nhập', error);
             }
+        
+
         } else {
             setErrorMessage("Please complete the reCAPTCHA");
         }

@@ -30,14 +30,18 @@ const CourseEdit = () => {
             formData.append('level', values.level);
             formData.append('quiz', values.quiz);
 
-            await axios.put(process.env.REACT_APP_API_URL + '/course/edit/' + values.id, formData, {
+            const response = await axios.put(process.env.REACT_APP_API_URL + '/course/edit/' + values.id, formData, {
                 headers: {
-                    'Content-Type': 'multipart/form-data'
+                    'Content-Type': 'multipart/form-data',
+                    'X-CSRF-Token': localStorage.getItem('csrfToken')
                 },
                 withCredentials: true
             });
+            localStorage.setItem('csrfToken', response.headers['x-csrf-token'])
             navigate('/adminPanel/course');
         } catch (error) {
+            const csrfToken = error.response.headers['x-csrf-token'];
+            localStorage.setItem('csrfToken', csrfToken);
             console.error('Error updating course:', error);
         }
     };

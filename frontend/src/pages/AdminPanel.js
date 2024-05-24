@@ -15,7 +15,7 @@ import QuizEdit from "../components/quiz/edit";
 import QuestionList from "../components/question/list";
 import QuestionCreate from "../components/question/create";
 import QuestionEdit from "../components/question/edit";
-import { Dashboard } from "../components/home/Dashboard";
+import { Dashboard } from "../components/home/page";
 
 
 const AdminPanel = () => {

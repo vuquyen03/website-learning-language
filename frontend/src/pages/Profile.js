@@ -21,21 +21,16 @@ const Profile = () => {
 
     useEffect(() => {
         if (userData == null) return;
-        
+
         const escapedData = {
             ...userData,
             username: escapeHTML(userData.username),
             email: escapeHTML(userData.email)
         }
         setProfileData(escapedData);
-    },[]);
+    }, []);
 
 
-    // console.log("Profile data:", profileData)
-    // console.log("Fetch profile done:", fetchProfileDone)
-    // console.log("Loading:", isLoading)
-
-    
     if (!loggedIn || profileData == null) {
         return <Navigate to="/login" />;
     }
@@ -62,11 +57,15 @@ const Profile = () => {
             const response = await axios.put(
                 `${process.env.REACT_APP_API_URL}/user/profile`,
                 inputData,
-                { withCredentials: true }
+                { withCredentials: true,
+                    headers: {
+                        'X-CSRF-Token': localStorage.getItem('csrfToken')
+                    }
+                 }
             );
 
-            // console.log("Update profile:", response);
             if (response.status === 200) {
+                localStorage.setItem('csrfToken', response.headers['x-csrf-token']);
                 const escapedData = {
                     ...response.data,
                     username: escapeHTML(response.data.username),
@@ -78,23 +77,13 @@ const Profile = () => {
 
         } catch (error) {
             console.error("Error editing profile:", error);
-            switch (true) {
-                case error.response.data.error.includes('Incorrect old password'):
-                    setErrorMessage('Incorrect old password');
-                    break;
-                case error.response.data.error.includes('Username is invalid, only contain a-z, A-Z, 0-9'):
-                    setErrorMessage('Username is invalid, only contain a-z, A-Z, 0-9');
-                    break;
-                case error.response.data.error.includes('Username must be at least 3 characters'):
-                    setErrorMessage('Username must be at least 3 characters');
-                    break;
-                case error.response.data.error.includes('Username already exists'):
-                    setErrorMessage('Username already exists');
-                    break;
-                default:
-                    setErrorMessage('Something went wrong');
-                    break;
+            const csrfToken = error.response.headers['x-csrf-token'];
+            localStorage.setItem('csrfToken', csrfToken);
+            let errorMessage = error.response.data.message;
+            if (!errorMessage) {
+                errorMessage = 'Something went wrong';
             }
+            setErrorMessage(errorMessage);
         } finally {
             setSubmitLoading(false);
         }
@@ -111,33 +100,34 @@ const Profile = () => {
             const response = await axios.put(
                 `${process.env.REACT_APP_API_URL}/user/change-password`,
                 inputData,
-                { withCredentials: true }
+                {
+                    withCredentials: true,
+                    headers: {
+                        'X-CSRF-Token': localStorage.getItem('csrfToken')
+                    }
+                }
             );
 
-            // console.log("Change password:", response);
             if (response.status === 200) {
+                localStorage.setItem('csrfToken', response.headers['x-csrf-token']);
                 closeChangePasswordPopup();
             }
 
         } catch (error) {
             console.error("Error changing password:", error);
-            switch (true) {
-                case error.response.data.error.includes('Incorrect old password'):
-                    setErrorMessage('Incorrect old password');
+            const csrfToken = error.response.headers['x-csrf-token'];
+            localStorage.setItem('csrfToken', csrfToken);
+
+            let errorMessage = error.response.data.message;
+            switch (errorMessage) {
+                case undefined || null:
+                    errorMessage = 'Something went wrong';
                     break;
-                case error.response.data.error.includes('Password must be at least 6 characters'):
-                    setErrorMessage('Password must be at least 6 characters');
-                    break;
-                case error.response.data.error.includes('Password does not match'):
-                    setErrorMessage('Password does not match');
-                    break;
-                case error.response.data.error.includes('Password has been used before'):
-                    setErrorMessage('Password has been used before');
-                    break;
-                default:
-                    setErrorMessage('Something went wrong');
+                case 'Password is too weak':
+                    errorMessage = 'Password must be 8+ characters with uppercase, lowercase, number, and special character';
                     break;
             }
+            setErrorMessage(errorMessage);
         } finally {
             setSubmitLoading(false);
         }

@@ -9,9 +9,7 @@ import { useSelector } from "react-redux";
 const Leaderboards = () => {
     const [data, setData] = useState([]);
     const [fetchLoading, setFetchLoading] = useState(false);
-    const userData = useSelector(state => state.user.userData);
     const loggedIn = useSelector(state => state.user.loggedIn);
-    console.log("Leaderboards.js: userData: ", userData);
 
     useEffect(() => {
         const fetchUser = async () => {

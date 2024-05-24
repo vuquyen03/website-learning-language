@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import Alert from '@mui/material/Alert';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import axios from 'axios';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import ArrowDropUpIcon from '@mui/icons-material/ArrowDropUp';
 import Typography from '@mui/material/Typography';
 import success from '../assets/success.png';
+import { setCourseData } from '../redux/actions/userActions';
 
 const Dashboard = () => {
     const [expandedCourses, setExpandedCourses] = useState([]); // Initialize to empty array
@@ -15,6 +16,7 @@ const Dashboard = () => {
     const [showAlert, setShowAlert] = useState(true);
     const [popup, setPopup] = useState(false);
     const [courses, setCourses] = useState([]);
+    const dispatch = useDispatch();
 
     useEffect(() => {
         const fetchCourses = async () => {
@@ -22,7 +24,7 @@ const Dashboard = () => {
                 const response = await axios.get(process.env.REACT_APP_API_URL + '/course/all', { withCredentials: true });
                 if (response.status === 200) {
                     setCourses(response.data.items);
-                    console.log('Courses:', response.data.items);
+                    // console.log('Courses:', response.data.items);
                 }
             } catch (error) {
                 console.error('Error fetching courses:', error);
@@ -52,6 +54,13 @@ const Dashboard = () => {
             setExpandedCourses(expandedCourses.filter(id => id !== courseId)); // Collapse if already expanded
         } else {
             setExpandedCourses([...expandedCourses, courseId]); // Expand if not expanded
+        }
+    };
+
+    const handleQuizClick = (courseTitle, quizId, quizTitle) => {
+        if(courseTitle != null){
+            console.log("-----------------------------")
+            dispatch(setCourseData(courseTitle, quizId, quizTitle));
         }
     };
 
@@ -110,7 +119,12 @@ const Dashboard = () => {
                             <div>
                                 {course.quiz.map(quiz => (
                                     <li key={quiz._id} className="flex justify-between items-center">
-                                        <Link to={`/quiz/${quiz._id}`} className="text-blue-500 hover:underline">{quiz.title}</Link>
+                                        <Link
+                                            to={`/quiz/${course.courseTitle}/${quiz.title}`}
+                                            className="text-blue-500 hover:underline"
+                                            onClick={() => handleQuizClick(course.courseTitle, quiz._id, quiz.title)}>
+                                            {quiz.title}
+                                        </Link>
                                     </li>
                                 ))}
                                 <button onClick={() => toggleQuizVisibility(course._id)} className="text-blue-500 hover:underline">

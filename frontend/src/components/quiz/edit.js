@@ -1,4 +1,4 @@
-import { SimpleForm, Edit, required, ReferenceField, TextInput, ReferenceArrayInput, SelectArrayInput, ReferenceArrayField, Datagrid, TextField, ChipField } from 'react-admin';
+import { SimpleForm, Edit, required, ReferenceField,TextInput, ReferenceArrayInput, SelectArrayInput, ReferenceArrayField, Datagrid, TextField, ChipField } from 'react-admin';
 
 const QuizEdit = () => {
     return (

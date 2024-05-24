@@ -2,11 +2,12 @@ import express from 'express';
 import courseController from '../controllers/courseController.js';
 import { verifyJWT, isAdmin } from '../middlewares/auth/auth.js';
 import upload from '../middlewares/upload/multer.js';
+import csrfMiddleware, { verifyCsrfToken } from '../middlewares/auth/csrfProtection.js';
 
 const router = express.Router();
 
 // CREATE COURSE
-router.post('/', verifyJWT, isAdmin, upload.single('image'), courseController.createCourse);
+router.post('/', verifyJWT, isAdmin, verifyCsrfToken, csrfMiddleware, upload.single('image'), courseController.createCourse);
 
 // GET COURSES REFERENCE
 router.get('/', courseController.getCoursesReference);
@@ -18,13 +19,13 @@ router.get('/all', verifyJWT, courseController.getAllCourses);
 router.get('/many', courseController.getManyCourses);
 
 // UPDATE COURSE BY ID
-router.put('/edit/:id', verifyJWT, isAdmin, upload.single('image'), courseController.updateCourseById);
+router.put('/edit/:id', verifyJWT, isAdmin, verifyCsrfToken, csrfMiddleware, upload.single('image'), courseController.updateCourseById);
 
 // DELETE COURSE BY ID
-router.delete('/delete/:id', verifyJWT, isAdmin, courseController.deleteCourseById);
+router.delete('/delete/:id', verifyJWT, isAdmin, verifyCsrfToken, csrfMiddleware, courseController.deleteCourseById);
 
 // DELETE MANY COURSES
-router.delete('/deleteMany', verifyJWT, isAdmin, courseController.deleteManyCourses);
+router.delete('/deleteMany', verifyJWT, isAdmin, verifyCsrfToken, csrfMiddleware, courseController.deleteManyCourses);
 
 // GET COURSE BY ID
 router.get('/:id', courseController.getCourseById);

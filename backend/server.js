@@ -8,14 +8,13 @@ import course from './src/routes/courseRoute.js';
 import quiz from './src/routes/quizRoute.js';
 import question from './src/routes/questionRoute.js';
 import cookieParser from 'cookie-parser';
-import csurf from 'csurf';
 import helmet from 'helmet';
+import logger from './src/logger/logger.js';
 
 dotenv.config();
 
 // create express app
 const app = express();
-const csrfProtection = csurf({ cookie: true });
 
 // middleware
 app.use(express.json());
@@ -23,17 +22,29 @@ app.use(express.urlencoded({ extended: true }));
 app.use(
     cors({
       credentials: true, 
-      origin: true 
+      origin: true,
+      allowedHeaders: ['Content-Type', 'X-Csrf-Token'],
+      exposedHeaders: ['X-Csrf-Token'],
     })
   );
-app.use(cookieParser()); // đọc và ghi cookie trong các yêu cầu HTTP
-app.use(morgan("dev"));
+app.use(cookieParser()); 
+
+// Set up logger
+app.use(morgan('combined', {
+  stream: {
+    write: message => logger.info(message.trim())
+  }
+}));
+
+// set up morgan
+// app.use(morgan('dev'));
+
+
 // Middleware to set Cache-Control headers
 app.use((req, res, next) => {
-  res.setHeader('Cache-Control', 'no-store', 'no-cache');
+  res.setHeader('Cache-Control', 'no-store');
   next();
 });
-
 app.use(helmet.contentSecurityPolicy({
   directives: {
     defaultSrc: ["'self'"],
@@ -68,19 +79,9 @@ app.use(helmet.contentSecurityPolicy({
   }
 }));
 
-// app.use(csrfProtection);
-
-const PORT = process.env.PORT || 5000;
 
 // connect to database
 connectDB(process.env.MONGODB_URI);
-
-// CSRF token route
-app.get('/api/v1/csrf-token', csrfProtection, (req, res) => {
-  const csrfToken = req.csrfToken(); // Lấy CSRF token từ request
-  console.log('csrfToken', csrfToken);
-  res.status(200).json({csrfToken: csrfToken}); // Không cần gửi phản hồi JSON
-});
 
 // Routes
 app.use('/api/v1/user', user);
@@ -88,6 +89,7 @@ app.use('/api/v1/course', course);
 app.use('/api/v1/quiz', quiz);
 app.use('/api/v1/question', question);  
 
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });

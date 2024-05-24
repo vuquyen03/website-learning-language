@@ -18,5 +18,9 @@ export const sendToken = async (res, user, accessToken, refreshToken, message, s
         expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * parseInt(process.env.REFRESH_TOKEN_EXPIRY)), // refreshToken is used during days 
     });
 
-    res.status(statusCode).json({ accessToken, refreshToken, user, message });
+    // Get CSRF token from setting in middleware
+    const csrfToken = res.locals.csrfToken;
+    console.log('csrfToken', csrfToken);
+
+    res.status(statusCode).json({ accessToken, refreshToken, csrfToken, user, message });
 };

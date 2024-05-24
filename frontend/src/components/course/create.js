@@ -26,14 +26,18 @@ const CourseCreate = () => {
             formData.append('description', values.description);
             formData.append('image', values.image.rawFile); // Truy cập rawFile để lấy đối tượng File
 
-            await axios.post(process.env.REACT_APP_API_URL + '/course/', formData, {
+            const response = await axios.post(process.env.REACT_APP_API_URL + '/course/', formData, {
                 headers: {
-                    'Content-Type': 'multipart/form-data'
+                    'Content-Type': 'multipart/form-data',
+                    'X-CSRF-Token': localStorage.getItem('csrfToken')
                 },
                 withCredentials: true
             });
+            localStorage.setItem('csrfToken', response.headers['x-csrf-token']);
             navigate('/adminPanel/course');
         } catch (error) {
+            const csrfToken = error.response.headers['x-csrf-token'];
+            localStorage.setItem('csrfToken', csrfToken);
             console.error('Error creating course:', error);
         }
     };

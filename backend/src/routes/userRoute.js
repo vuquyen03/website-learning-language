@@ -1,17 +1,16 @@
 import express from 'express';
 import userController from '../controllers/userController.js';
 import { verifyJWT, isAdmin } from '../middlewares/auth/auth.js';
-import csurf from 'csurf';
 import { loginRateLimiter, forgotPasswordRateLimiter } from '../middlewares/rateLimit/rate-limit.js';
+import csrfMiddleware, { verifyCsrfToken } from '../middlewares/auth/csrfProtection.js';
 
 const router = express.Router();
-const csrfProtection = csurf({ cookie: true });
 
 // REGISTER USER
-router.post('/register', userController.register);
+router.post('/register', csrfMiddleware, userController.register);
 
 // LOGIN USER
-router.post('/login', loginRateLimiter, userController.login);
+router.post('/login', loginRateLimiter, csrfMiddleware, userController.login);
 
 // VERIFY EMAIL
 router.get('/verify-email/:token', userController.verifyEmail);
@@ -20,16 +19,16 @@ router.get('/verify-email/:token', userController.verifyEmail);
 router.post('/resend-email', verifyJWT, userController.resendEmail);
 
 // LOGOUT USER
-router.post('/logout', verifyJWT, userController.logout);
+router.post('/logout', verifyJWT, verifyCsrfToken, userController.logout);
 
 // GET USER PROFILE
 router.get('/profile', verifyJWT, userController.getProfile);
 
 // UPDATE USER PROFILE
-router.put('/profile', verifyJWT, userController.updateProfile);
+router.put('/profile', verifyJWT, verifyCsrfToken, csrfMiddleware, userController.updateProfile);
 
 // CHANGE PASSWORD
-router.put('/change-password', verifyJWT, userController.changePassword);
+router.put('/change-password', verifyJWT, verifyCsrfToken, csrfMiddleware, userController.changePassword);
 
 // FORGOT PASSWORD
 router.post('/forgot-password', forgotPasswordRateLimiter, userController.forgotPassword);
@@ -41,7 +40,7 @@ router.post('/reset-password/:token', userController.resetPassword);
 router.post('/validate-reset-token', userController.validateResetToken);
 
 // UPDATE EXPERIENCE
-router.put('/experience', userController.updateExperience);
+router.put('/experience', verifyJWT, verifyCsrfToken, csrfMiddleware, userController.updateExperience);
 
 // REFRESH TOKEN
 router.post('/refresh-token', userController.refreshToken);
@@ -59,16 +58,16 @@ router.get('/check-login', verifyJWT, userController.checkLogin);
 router.get('/', verifyJWT, isAdmin, userController.getUserReference);
 
 // DELETE USER
-router.delete('/users', verifyJWT, userController.selfDeleteAccount);
+router.delete('/users', verifyJWT, verifyCsrfToken, csrfMiddleware, userController.selfDeleteAccount);
 
 // DELETE USER BY ADMIN
-router.delete('/delete/:id', verifyJWT, isAdmin, userController.adminDeleteAccount);
+router.delete('/delete/:id', verifyJWT, isAdmin, verifyCsrfToken, csrfMiddleware, userController.adminDeleteAccount);
 
 // DELETE MANY USERS BY ADMIN
-router.delete('/deleteMany', verifyJWT, isAdmin, userController.adminDeleteManyAccount);
+router.delete('/deleteMany', verifyJWT, isAdmin, verifyCsrfToken, csrfMiddleware, userController.adminDeleteManyAccount);
 
 // EDIT USER ROLE AND EXPERIENCE BY ADMIN
-router.put('/edit/:id', verifyJWT, isAdmin, userController.adminChangeUserRoleAndExperience);
+router.put('/edit/:id', verifyJWT, isAdmin, verifyCsrfToken, csrfMiddleware, userController.adminEditUser);
 
 // GET USER BY ID
 router.get('/:id', verifyJWT, isAdmin, userController.getUserById);

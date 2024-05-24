@@ -19,30 +19,32 @@ const CourseList = () => {
     const isSmall = useMediaQuery((theme) => theme.breakpoints.down("sm"));
 
     return (
-        <List>
-            {isSmall ? (
-                <SimpleList
-                    primaryText={(record) => record.courseTitle}
-                    secondaryText={(record) => record.description}
-                    tertiaryText={(record) => record.level}
-                />
-            ) : (
-                <Datagrid rowClick="edit">
-                    <TextField source="id" />
-                    <TextField source="courseTitle" />
-                    <TextField source="description" />
-                    <TextField source="level" />
-                    <FunctionField
-                        label="Estimated Time"
-                        render={formatEstimatedTime}
-                        sortBy="estimatedTime"
+        <div className="w-full min-h-[calc(100vh-72px)] py-5 px-10">
+            <List>
+                {isSmall ? (
+                    <SimpleList
+                        primaryText={(record) => record.courseTitle}
+                        secondaryText={(record) => record.description}
+                        tertiaryText={(record) => record.level}
                     />
-                    <EditButton basepath="/courses" />
-                    <DeleteButton basepath="/courses" />
-                </Datagrid>
-            )}
+                ) : (
+                    <Datagrid rowClick="edit">
+                        <TextField source="id" />
+                        <TextField source="courseTitle" />
+                        <TextField source="description" />
+                        <TextField source="level" />
+                        <FunctionField
+                            label="Estimated Time"
+                            render={formatEstimatedTime}
+                            sortBy="estimatedTime"
+                        />
+                        <EditButton basepath="/courses" />
+                        <DeleteButton basepath="/courses" />
+                    </Datagrid>
+                )}
 
-        </List>
+            </List>
+        </div>
     )
 };
 

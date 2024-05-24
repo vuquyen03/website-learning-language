@@ -20,6 +20,17 @@ export const setUserData = (userData) => {
     }
 }
 
+export const setCourseData = (courseTitle, quizId, quizTitle) => {
+    return {
+        type: 'SET_COURSE_DATA',
+        payload: {
+            courseTitle,
+            quizId,
+            quizTitle
+        }
+    }
+}
+
 export const setExpirationTime = (expirationTime) => {
     localStorage.setItem('expirationTime', expirationTime);
     return {
@@ -51,7 +62,7 @@ export const logout = () => async dispatch => {
                 }
             },
         );
-        console.log(response)
+        // console.log(response)
         if (response.status === 200) {
             dispatch(setLoggedIn(false));
             dispatch(setUserRole(null)); // Clear user role

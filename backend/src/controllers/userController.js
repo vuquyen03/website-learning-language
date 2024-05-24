@@ -2,7 +2,7 @@ import User from '../models/User.js';
 import jwt from 'jsonwebtoken';
 import { sendToken } from '../middlewares/auth/sendToken.js';
 import bcrypt from 'bcrypt';
-import crypto, { verify } from 'crypto';
+import crypto from 'crypto';
 import { sendMail } from '../helper/sendMail.js';
 import validator from 'validator';
 
@@ -27,23 +27,26 @@ const userController = {
             const { username, email, password, confirmPassword } = req.body;
             const recaptchaResponse = req.body['g-recaptcha-response'];
 
+            // validate user input
+
+
             if (recaptchaResponse) {
                 try {
                     const recaptchaVerifyUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaResponse}`;
                     const recaptchaVerifyResponse = await fetch(recaptchaVerifyUrl, { method: 'POST' });
                     const recaptchaVerifyData = await recaptchaVerifyResponse.json();
                     if (!recaptchaVerifyData.success) {
-                        return res.status(400).json({ error: 'reCAPTCHA verification failed' });
+                        return res.status(400).json({ message: 'reCAPTCHA verification failed' });
                     }
 
                     continueRegister();
 
                 } catch (error) {
                     console.log(error);
-                    return res.status(400).json({ error: 'reCAPTCHA verification failed' });
+                    return res.status(400).json({ message: 'reCAPTCHA verification failed' });
                 }
             } else {
-                return res.status(400).json({ error: 'reCAPTCHA verification failed' });
+                return res.status(400).json({ message: 'reCAPTCHA verification failed' });
             }
             
             async function continueRegister() {
@@ -51,23 +54,32 @@ const userController = {
                     return res.status(400).json({ message: 'All fields are required' });
                 }
 
+                // check if username has invalid characters
+                if (!/^[a-zA-Z0-9]+$/.test(username)) {
+                    return res.status(400).json({ message: 'Username is invalid, only contain a-z, A-Z, 0-9', field: 'username' });
+                }
+
+                if (username.length < 3) {
+                    return res.status(400).json({ message: 'Username must be at least 3 characters', field: 'username' });
+                }
+
                 // check if user already exists
                 const existingUser = await User.findOne({ username });
                 if (existingUser) {
-                    return res.status(400).json({ error: 'Username already exists', field: 'username' });
+                    return res.status(400).json({ message: 'Username already exists', field: 'username' });
                 }
 
                 const existingEmail = await User.findOne({ email });
                 if (existingEmail) {
-                    return res.status(400).json({ error: 'Email already exists', field: 'email' });
+                    return res.status(400).json({ message: 'Email already exists', field: 'email' });
                 }
 
                 if (!validator.isStrongPassword(password)){
-                    return res.status(400).json({ error: 'Password is too weak' });
+                    return res.status(400).json({ message: 'Password is too weak' });
                 }
 
                 if (password !== confirmPassword) {
-                    return res.status(400).json({ error: 'Password does not match' });
+                    return res.status(400).json({ message: 'Password does not match' });
                 }
 
                 let verificationToken = crypto.randomBytes(32).toString('hex');
@@ -99,7 +111,6 @@ const userController = {
             const { email, password } = req.body;
             const recaptchaResponse = req.body['g-recaptcha-response'];
 
-
             if (recaptchaResponse) {
                 try {
                     const recaptchaVerifyUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaResponse}`;
@@ -107,13 +118,12 @@ const userController = {
                     const recaptchaVerifyData = await recaptchaVerifyResponse.json();
 
                     if (!recaptchaVerifyData.success) {
-                        return res.status(400).json({ error: 'reCAPTCHA verification failed' });
+                        return res.status(400).json({ message: 'reCAPTCHA verification failed' });
                     }
 
                     continueLogin();
                 } catch (error) {
-                    console.log(error);
-                    return res.status(400).json({ error: 'reCAPTCHA verification failed' });
+                    return res.status(400).json({ message: 'reCAPTCHA verification failed' });
                 }
             } else {
                 continueLogin();
@@ -121,23 +131,23 @@ const userController = {
 
             async function continueLogin() {
                 if (!email || !password) {
-                    return res.status(400).json({ error: 'All fields are required' });
+                    return res.status(400).json({ message: 'All fields are required' });
                 }
     
                 const user = await User.findOne({ email }).select('-refreshToken -passwordHistory -resetPasswordToken -resetPasswordExpires -verifyToken');
                 if (!user) {
-                    return res.status(400).json({ error: 'Incorrect Email or Password' });
+                    return res.status(400).json({ message: 'Incorrect Email or Password' });
                 }
     
                 if (user.loginAttempts >= 5 && !recaptchaResponse) {
-                    return res.status(400).json({ error: 'Please complete the reCAPTCHA' });
+                    return res.status(400).json({ message: 'Please complete the reCAPTCHA' });
                 }
     
                 const isMatch = await user.isCorrectPassword(password);
                 if (!isMatch) {
                     user.loginAttempts += 1;
                     await user.save();
-                    return res.status(400).json({ error: 'Incorrect Email or Password' });
+                    return res.status(400).json({ message: 'Incorrect Email or Password' });
                 }
     
                 user.loginAttempts = 0;
@@ -146,6 +156,7 @@ const userController = {
                 const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user.id);
                 user.loginAttempts = undefined;
                 user.password = undefined;
+
                 sendToken(res, user, accessToken, refreshToken, `Welcome back, ${user.username}`, 200);    
             }
         } catch (error) {
@@ -157,10 +168,6 @@ const userController = {
     // Path: /user/logout
     logout: async (req, res) => {
         try {
-            // console.log(req.headers);
-            // console.log(req.headers['x-csrf-token']);
-            // console.log(req.csrfToken());
-            // console.log(req.csrfToken());
 
             await User.findByIdAndUpdate(req.user.id, { refreshToken: '' });
             const option = {
@@ -174,6 +181,7 @@ const userController = {
             .status(200)
             .clearCookie("accessToken", option)
             .clearCookie("refreshToken", option)
+            .clearCookie("csrfSecret", option)
             .json({
                 success: true,
                 message: "Logged Out Successfully",
@@ -284,41 +292,41 @@ const userController = {
             const userId = req.user._id;
             const { username, password } = req.body;
             const user = await User.findById(userId).select('username password role experience createdAt _id');
-    
+            
             if (!user){
-                return res.status(404).json({ error: 'User not found' });
+                return res.status(404).json({ message: 'User not found' });
             }
     
             // check if username has invalid characters
             if (username && !/^[a-zA-Z0-9]+$/.test(username)) {
-                return res.status(400).json({ error: 'Username is invalid, only contain a-z, A-Z, 0-9', field: 'username' });
+                return res.status(400).json({ message: 'Username is invalid, only contain a-z, A-Z, 0-9', field: 'username' });
             }
     
             if (username && username.length < 3) {
-                return res.status(400).json({ error: 'Username must be at least 3 characters', field: 'username' });
+                return res.status(400).json({ message: 'Username must be at least 3 characters', field: 'username' });
             }
     
             if (!password){
-                return res.status(400).json({ error: "Required password"});
+                return res.status(400).json({ message: "Required password"});
             }
     
             const isMatch = await user.isCorrectPassword(password);
             if (!isMatch){
-                return res.status(400).json({ error: 'Incorrect old password' });
+                return res.status(400).json({ message: 'Incorrect old password' });
             }
     
             if (username){
                 const existingUser = await User.findOne({ username: username });
                 if (existingUser && existingUser._id.toString() !== userId){
-                    return res.status(400).json({ error: 'Username already exists', field: 'username' });
+                    return res.status(400).json({ message: 'Username already exists', field: 'username' });
                 }
             }
     
             user.username = username;
             const updatedUser = await user.save();
             updatedUser.password = undefined;
-    
-            return res.status(200).json(updatedUser);
+            
+            return res.status(200).json( updatedUser );
         } catch (error) {
             return res.status(500).json({ message: error.message });
         }
@@ -393,17 +401,17 @@ const userController = {
             const user = await User.findById(userId);
             const isMatch = await user.isCorrectPassword(oldPassword);
             if (!isMatch) {
-                return res.status(400).json({ error: 'Incorrect old password' });
+                return res.status(400).json({ message: 'Incorrect old password' });
             }
     
             // check new password length
-            if (newPassword.length < 6) {
-                return res.status(400).json({ error: 'Password must be at least 6 characters' });
+            if (!validator.isStrongPassword(newPassword)) {
+                return res.status(400).json({ message: 'Password is too weak' });
             }
     
             // check confirm password
             if (newPassword !== confirmPassword) {
-                return res.status(400).json({ error: 'Password does not match' });
+                return res.status(400).json({ message: 'Password does not match' });
             }
 
             // check new password is in the password history
@@ -417,7 +425,7 @@ const userController = {
             };
 
             if (isInPasswordHistory) {  
-                return res.status(400).json({ error: 'Password has been used before' });
+                return res.status(400).json({ message: 'Password has been used before' });
             }
             
             // update password
@@ -553,14 +561,14 @@ const userController = {
 
     // Method: PUT
     // Path: /user/edit/:id
-    adminChangeUserRoleAndExperience: async (req, res) => {
+    adminEditUser: async (req, res) => {
         try {
             const userId = req.params.id;
-            const { role, experience } = req.body;
+            const { isVerified, experience } = req.body;
             const user = await User.findOneAndUpdate(
                 { _id: userId }, 
-                { $set: { role, experience } }, 
-                { new: true, select: 'username email role experience createdAt -_id' } 
+                { $set: { isVerified, experience } }, 
+                { new: true, select: 'username email role experience createdAt isVerified -_id' } 
             );
             
             if (!user) {

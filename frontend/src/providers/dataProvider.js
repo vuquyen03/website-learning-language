@@ -30,11 +30,17 @@ export default {
             const { data } = params;
             const response = await axios.post(`${apiUrl}/${resource}`, data, {
                 withCredentials: true,
+                headers: {
+                    'X-CSRF-Token': localStorage.getItem('csrfToken') 
+                }
             });
+            localStorage.setItem('csrfToken', response.headers['x-csrf-token']);
             
             console.log(response);
             return { data: { ...response.data, id: response.data._id } };
         } catch (error) {
+            const csrfToken = error.response.headers['x-csrf-token'];
+            localStorage.setItem('csrfToken', csrfToken);
             throw new Error(error.response.data.message || error.message);
         }
     },
@@ -74,11 +80,17 @@ export default {
             const { id, data } = params;
             const response = await axios.put(`${apiUrl}/${resource}/edit/${id}`, data, {
                 withCredentials: true,
+                headers: {
+                    'X-CSRF-Token': localStorage.getItem('csrfToken') 
+                }
             });
+            localStorage.setItem('csrfToken', response.headers['x-csrf-token']);
 
             console.log(response);
             return { data: { ...response.data, id: response.data._id } };
         } catch (error) {
+            const csrfToken = error.response.headers['x-csrf-token'];
+            localStorage.setItem('csrfToken', csrfToken);
             throw new Error(error.response.data.message || error.message);
         }
     },
@@ -87,11 +99,17 @@ export default {
             const { id } = params;
             const response = await axios.delete(`${apiUrl}/${resource}/delete/${id}`, {
                 withCredentials: true,
+                headers: {
+                    'X-CSRF-Token': localStorage.getItem('csrfToken') 
+                }
             });
+            localStorage.setItem('csrfToken', response.headers['x-csrf-token']);
             
             console.log(response);
             return { data: { id } };
         } catch (error) {
+            const csrfToken = error.response.headers['x-csrf-token'];
+            localStorage.setItem('csrfToken', csrfToken);
             throw new Error(error.response.data.message || error.message);
         }
     },
@@ -101,14 +119,19 @@ export default {
             const response = await axios.delete(`${apiUrl}/${resource}/deleteMany`, {
                 data: { ids },
                 withCredentials: true,
+                headers: {
+                    'X-CSRF-Token': localStorage.getItem('csrfToken') 
+                }
             });
+            localStorage.setItem('csrfToken', response.headers['x-csrf-token']);
 
             console.log(response);
-
             const deletedItems = ids.map(id => ({ id }));
             return { data: deletedItems };
 
         } catch (error) {
+            const csrfToken = error.response.headers['x-csrf-token'];
+            localStorage.setItem('csrfToken', csrfToken);
             throw new Error(error.response.data.message || error.message);
         }
     },

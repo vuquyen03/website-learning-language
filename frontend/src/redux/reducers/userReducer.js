@@ -1,9 +1,12 @@
 import { createReducer } from "@reduxjs/toolkit";
 
-const initialState = { 
+const initialState = {
   loggedIn: false,
   userRole: null,
   expirationTime: localStorage.getItem("expirationTime") || null,
+  courseTitle: localStorage.getItem("courseTitle") || null,
+  quizId: localStorage.getItem("quizId") || null,
+  quizTitle: localStorage.getItem("quizTitle") || null
 };
 
 export const userReducer = createReducer(initialState, (builder) => {
@@ -19,5 +22,13 @@ export const userReducer = createReducer(initialState, (builder) => {
     })
     .addCase("SET_USER_DATA", (state, action) => {
       state.userData = action.payload;
-    });
+    })
+    .addCase("SET_COURSE_DATA", (state, action) => {
+      state.courseTitle = action.payload.courseTitle;
+      state.quizId = action.payload.quizId;
+      state.quizTitle = action.payload.quizTitle;
+      // Persist to localStorage
+      localStorage.setItem('courseTitle', action.payload.courseTitle);
+      localStorage.setItem('quizId', action.payload.quizId);
+      localStorage.setItem('quizTitle', action.payload.quizTitle);    });
 });

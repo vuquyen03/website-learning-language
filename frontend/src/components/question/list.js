@@ -5,26 +5,28 @@ import { useMediaQuery, Theme } from "@mui/material";
 const QuestionList = () => {
     const isSmall = useMediaQuery((theme) => theme.breakpoints.down("sm"));
     return (
-        <List>
-            {isSmall ? (
-                <SimpleList
-                    primaryText={(record) => record.question}
-                    tertiaryText={(record) => record.correctOption}
-                />
-            ) : (
-                <Datagrid rowClick="edit">
-                    <TextField source="id" />
-                    <TextField source="question" />
-                    <ReferenceField source="quiz" reference="quiz">
-                        <ChipField source="title" />
-                    </ReferenceField>
-                    <TextField source="correctOption" />
-                    <EditButton basepath="/questions" />
-                    <DeleteButton basepath="/questions" />
+        <div className="w-full min-h-[calc(100vh-72px)] py-5 px-10">
+            <List>
+                {isSmall ? (
+                    <SimpleList
+                        primaryText={(record) => record.question}
+                        tertiaryText={(record) => record.correctOption}
+                    />
+                ) : (
+                    <Datagrid rowClick="edit">
+                        <TextField source="id" />
+                        <TextField source="question" />
+                        <ReferenceField source="quiz" reference="quiz">
+                            <ChipField source="title" />
+                        </ReferenceField>
+                        <TextField source="correctOption" />
+                        <EditButton basepath="/questions" />
+                        <DeleteButton basepath="/questions" />
 
-                </Datagrid>
-            )}
-        </List>
+                    </Datagrid>
+                )}
+            </List>
+        </div>
     )
 };
 
