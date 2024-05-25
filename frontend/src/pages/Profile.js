@@ -48,12 +48,13 @@ const Profile = () => {
 
     const handleEditProfile = async (e) => {
         e.preventDefault();
+        if(submitLoading) return;
+        setSubmitLoading(true);
 
         const formData = new FormData(formRef.current);
         const inputData = Object.fromEntries(formData.entries());
 
         try {
-            setSubmitLoading(true);
             const response = await axios.put(
                 `${process.env.REACT_APP_API_URL}/user/profile`,
                 inputData,
@@ -92,11 +93,13 @@ const Profile = () => {
     const handleChangePassword = async (e) => {
         e.preventDefault();
 
+        if (submitLoading) return;
+        setSubmitLoading(true);
+
         const formData = new FormData(formRef.current);
         const inputData = Object.fromEntries(formData.entries());
 
         try {
-            setSubmitLoading(true);
             const response = await axios.put(
                 `${process.env.REACT_APP_API_URL}/user/change-password`,
                 inputData,
@@ -133,7 +136,6 @@ const Profile = () => {
         } finally {
             setSubmitLoading(false);
         }
-
     };
 
     const openEditPopup = () => {

@@ -48,7 +48,6 @@ app.use(helmet.contentSecurityPolicy({
     defaultSrc: ["'self'"],
     scriptSrc: [
       "'self'",
-      "https://www.google.com", 
       "https://www.google.com/recaptcha/", 
       "https://www.gstatic.com/"
     ],
@@ -67,7 +66,6 @@ app.use(helmet.contentSecurityPolicy({
     ],
     connectSrc: [
       "'self'",
-      "https://www.google.com", 
       "https://www.google.com/recaptcha/", 
     ],
     frameSrc: [

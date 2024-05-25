@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, Typography } from "@mui/material";
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { logout } from '../../redux/actions/userActions';
 import { useRef, useState } from 'react';
@@ -32,24 +32,33 @@ export const Dashboard = () => {
     const handleChangePassword = async (e) => {
         e.preventDefault();
 
+        if (submitLoading) return;
+        setSubmitLoading(true);
+        
         const formData = new FormData(formRef.current);
         const inputData = Object.fromEntries(formData.entries());
 
         try {
-            setSubmitLoading(true);
             const response = await axios.put(
                 `${process.env.REACT_APP_API_URL}/user/change-password`,
                 inputData,
-                { withCredentials: true }
+                { withCredentials: true, 
+                    headers: {
+                        'X-CSRF-Token': localStorage.getItem('csrfToken')
+                    }
+                 }
             );
 
-            // console.log("Change password:", response);
             if (response.status === 200) {
+                localStorage.setItem('csrfToken', response.headers['x-csrf-token'])
                 closeChangePasswordPopup();
             }
 
         } catch (error) {
             console.error("Error changing password:", error);
+            const csrfToken = error.response.headers['x-csrf-token'];
+            localStorage.setItem('csrfToken', csrfToken);
+
             const errorMessage = error.response.data.message;
             switch (true) {
                 case errorMessage.includes('Incorrect old password'):
