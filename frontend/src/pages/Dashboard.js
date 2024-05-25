@@ -118,10 +118,10 @@ const Dashboard = () => {
                             // Render quizzes if course is expanded
                             <div>
                                 {course.quiz.map(quiz => (
-                                    <li key={quiz._id} className="flex justify-between items-center">
+                                    <li key={quiz._id} className="w-full flex justify-between items-center">
                                         <Link
                                             to={`/quiz/${course.courseTitle}/${quiz.title}`}
-                                            className="text-blue-500 hover:underline"
+                                            className="text-blue-500 text-lg hover:bg-slate-100 w-full"
                                             onClick={() => handleQuizClick(course.courseTitle, quiz._id, quiz.title)}>
                                             {quiz.title}
                                         </Link>

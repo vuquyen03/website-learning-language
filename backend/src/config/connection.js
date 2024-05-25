@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-
+import logger from "../logger/logger.js";
 /**
   The connectDB function is an async function that takes a URL parameter. 
   This function uses the mongoose.connect method to connect to the MongoDB database. 
@@ -11,9 +11,9 @@ const connectDB = async (url) => {
     const conn = await mongoose.connect(url, {
       dbName: 'learning-app',
     });
-    console.log(`MongoDB Connected`);
+    // logger.info(`MongoDB Connected`);
   } catch (error) {
-    console.log(`Error: ${error.message}`);
+    logger.error(`Error: ${error.message}`);
     process.exit(1);
   }
 }

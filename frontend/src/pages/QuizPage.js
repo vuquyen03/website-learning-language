@@ -7,12 +7,12 @@ import { HiCheck, HiArrowRight } from 'react-icons/hi';
 import { AiOutlineLoading } from 'react-icons/ai';
 import { BsFillSkipForwardFill } from 'react-icons/bs';
 import FeedbackMessage from '../components/FeedbackMessage';
+import CompleteScreen from './CompleteScreen';
 import Button from '../components/Button';
 import { BsArrowClockwise } from 'react-icons/bs';
 import axios from "axios";
 
 const QuizPage = () => {
-    const [quiz, setQuiz] = useState({});
     const [loading, setLoading] = useState(true);
     const loggedIn = useSelector(state => state.user.loggedIn);
     const [listQuestion, setListQuestion] = useState([]);
@@ -29,6 +29,7 @@ const QuizPage = () => {
     const [questionDone, setQuestionDone] = useState(0);
     const [startTime, setStartTime] = useState(null);
     const [endTime, setEndTime] = useState(null);
+    const requiredXp = 8;
 
     useEffect(() => {
         const fetchQuiz = async () => {
@@ -36,7 +37,6 @@ const QuizPage = () => {
                 const response = await axios.get(`${process.env.REACT_APP_API_URL}/quiz/questions/${quizId}`, { withCredentials: true });
                 if (response.status === 200) {
                     const questions = response.data.question;
-                    // setQuiz(response.data);
                     setLoading(false);
                     setListQuestion(questions);
                     setNumberOfQuestions(questions.length);
@@ -49,7 +49,14 @@ const QuizPage = () => {
         };
 
         fetchQuiz();
-    }, []);
+    }, [quizId]);
+
+    useEffect(() => {
+        const element = document.getElementById('Failed-title');
+        if (element) {
+            element.classList.add('visible');
+        }
+    }, [quizComplete]);
 
     const randomQuestion = (questions) => {
         if (questions.length === 0) return;
@@ -138,15 +145,34 @@ const QuizPage = () => {
 
     const updateExperience = async () => {
         try {
-            const response = await axios.post(`${process.env.REACT_APP_API_URL}/user/update-experience`, {
-                xp: correctQuestions * 10 / numberOfQuestions
-            }, { withCredentials: true });
-            if (response.status === 200) {
-                console.log("Experience updated successfully");
+            const xp = correctQuestions * 10 / numberOfQuestions;
+            if (xp >= requiredXp) {
+                const response = await axios.put(`${process.env.REACT_APP_API_URL}/user/update-experience`,
+                    {
+                        experience: xp
+                    },
+                    {
+                        withCredentials: true,
+                        headers: {
+                            'X-CSRF-Token': localStorage.getItem('csrfToken')
+                        }
+                    }
+                );
+
+                if (response.status === 200) {
+                    localStorage.setItem('csrfToken', response.headers['x-csrf-token'])
+                    console.log("Experience updated successfully");
+                }
+            } else {
+                console.log("Your score is not high enough to update experience");
             }
         } catch (error) {
+            const csrfToken = error.response.headers['x-csrf-token'];
+            localStorage.setItem('csrfToken', csrfToken);
             console.error("Error updating experience:", error);
         }
+
+        window.history.back();
     }
 
 
@@ -236,11 +262,19 @@ const QuizPage = () => {
                 </div>
             )}
 
-            {/* Quiz Completion Screen */}
             {quizComplete && (
-                <div>
-                    Win
-                </div>
+                correctQuestions * 10 / numberOfQuestions >= requiredXp ? (
+                    <CompleteScreen corectQuestions={correctQuestions} xp={correctQuestions * 10 / numberOfQuestions} time={calculateTimeTaken()} />
+                ) : (
+                    <div className="grow flex flex-col justify-center items-center text-center gap-8">
+                        <h1
+                            id="Failed-title"
+                            className="font-bold text-4xl md:text-5xl lg:text-6xl opacity-transition"
+                        >
+                            Never give up! You should try again!
+                        </h1>
+                    </div>
+                )
             )}
 
             {/* Quiz Footer */}
@@ -326,7 +360,7 @@ const QuizPage = () => {
                             <Button
                                 type="button"
                                 btnStyle="flex justify-center items-center gap-2 text-white dark:text-slate-800 bg-[#58CC02] hover:bg-[#4CAD02]"
-                                onClick={() => { }}
+                                onClick={() => updateExperience()}
                                 title="Continue"
                                 icon={<HiArrowRight className="w-5 h-5" />}
                             />

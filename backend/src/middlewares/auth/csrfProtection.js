@@ -1,7 +1,7 @@
 import Tokens from 'csrf';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
-
+import { Forbidden } from '../../core/error.response.js';
 dotenv.config();
 
 const tokens = new Tokens();
@@ -29,8 +29,7 @@ export const verifyCsrfToken = async (req, res, next) => {
     const csrfSecret = req.cookies['csrfSecret'];
 
     if (!csrfToken || !csrfSecret || !tokens.verify(csrfSecret, csrfToken)) {
-        console.log('Invalid CSRF token');
-        return res.status(403).json({ message: 'Invalid CSRF token' });
+        return new Forbidden({ message: 'Invalid CSRF token', req }).send(res);
     }
 
     next();

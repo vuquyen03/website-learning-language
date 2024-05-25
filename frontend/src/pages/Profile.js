@@ -11,13 +11,13 @@ import { useSelector } from 'react-redux';
 const Profile = () => {
     const { loggedIn, isLoading } = useUserStatus();
     const [profileData, setProfileData] = useState('');
-    const [fetchProfileDone, setFetchProfileDone] = useState(false);
     const [editProfilePopup, setEditProfilePopup] = useState(false);
     const [changePasswordPopup, setChangePasswordPopup] = useState(false);
     const [submitLoading, setSubmitLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
     const formRef = useRef(null);
     const userData = useSelector(state => state.user.userData);
+    console.log("userData in Profile", userData);
 
     useEffect(() => {
         if (userData == null) return;
@@ -28,7 +28,7 @@ const Profile = () => {
             email: escapeHTML(userData.email)
         }
         setProfileData(escapedData);
-    }, []);
+    }, [userData]);
 
 
     if (!loggedIn || profileData == null) {
@@ -125,6 +125,8 @@ const Profile = () => {
                     break;
                 case 'Password is too weak':
                     errorMessage = 'Password must be 8+ characters with uppercase, lowercase, number, and special character';
+                    break;
+                default:
                     break;
             }
             setErrorMessage(errorMessage);

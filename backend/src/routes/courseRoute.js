@@ -10,13 +10,13 @@ const router = express.Router();
 router.post('/', verifyJWT, isAdmin, verifyCsrfToken, csrfMiddleware, upload.single('image'), courseController.createCourse);
 
 // GET COURSES REFERENCE
-router.get('/', courseController.getCoursesReference);
+router.get('/', verifyJWT, courseController.getCoursesReference);
 
 // GET ALL COURSES
 router.get('/all', verifyJWT, courseController.getAllCourses);
 
 // GET MANY COURSES
-router.get('/many', courseController.getManyCourses);
+router.get('/many', verifyJWT, courseController.getManyCourses);
 
 // UPDATE COURSE BY ID
 router.put('/edit/:id', verifyJWT, isAdmin, verifyCsrfToken, csrfMiddleware, upload.single('image'), courseController.updateCourseById);
@@ -28,6 +28,6 @@ router.delete('/delete/:id', verifyJWT, isAdmin, verifyCsrfToken, csrfMiddleware
 router.delete('/deleteMany', verifyJWT, isAdmin, verifyCsrfToken, csrfMiddleware, courseController.deleteManyCourses);
 
 // GET COURSE BY ID
-router.get('/:id', courseController.getCourseById);
+router.get('/:id', verifyJWT, courseController.getCourseById);
 
 export default router;

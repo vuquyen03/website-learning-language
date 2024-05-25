@@ -1,6 +1,9 @@
 import Course from "../models/Course.js";
 import Quiz from "../models/Quiz.js";
 import Question from "../models/Question.js";
+import { BadRequest, NotFound } from "../core/error.response.js";
+import { SuccessResponse, Created } from "../core/success.response.js";
+import { handleErrorResponse } from "../helper/handleErrorResponse.js";
 
 const quizController = {
     
@@ -20,9 +23,10 @@ const quizController = {
                 );
             }
 
+            new Created({ message: "Quiz created successfully", req });
             res.status(201).json(newQuiz);
         } catch (error) {
-            return res.status(500).json({ message: error.message });
+            return handleErrorResponse(error, req, res);
         }
     },
 
@@ -32,7 +36,7 @@ const quizController = {
         try {
             const quizzes = await Quiz.find().populate('course', 'courseTitle');
             if (!quizzes || quizzes.length === 0) {
-                return res.status(404).json({ message: 'No quizzes found' });
+                throw new NotFound({ message: 'No quizzes found', req }, 'info');
             }
 
             // Pagination
@@ -45,9 +49,10 @@ const quizController = {
             // Create data for the current page
             const data = quizzes.slice(startIndex, endIndex);
 
+            new SuccessResponse({ message: "Get all quizzes successfully", req });
             return res.status(200).json({ items: data, page, perPage, total });
         } catch (error) {
-            res.status(500).json({ message: error.message });
+            return handleErrorResponse(error, req, res);
         }
     },
 
@@ -57,17 +62,18 @@ const quizController = {
         try {
             const quizIds = req.query.ids;
             if (!quizIds || quizIds.length === 0) {
-                return res.status(400).json({ message: 'No quiz IDs provided' });
+                throw new BadRequest({ message: 'No quiz IDs provided', req }, 'warn');
             }
 
             const quizzes = await Quiz.find({ _id: { $in: quizIds } }).populate('course', 'courseTitle');
             if (!quizzes || quizzes.length === 0) {
-                return res.status(404).json({ message: 'No quizzes found' });
+                throw new NotFound({ message: 'No quizzes found', req }, 'info');
             }
 
+            new SuccessResponse({ message: "Get many quizzes successfully", req });
             return res.status(200).json({ items: quizzes });
         } catch (error) {
-            return res.status(500).json({ message: error.message });
+            return handleErrorResponse(error, req, res);
         }
     },
 
@@ -78,12 +84,13 @@ const quizController = {
             const quizId = req.params.id;
             const quiz = await Quiz.findById(quizId);
             if (!quiz) {
-                return res.status(404).json({ message: 'Quiz not found' });
+                throw new NotFound({ message: 'Quiz not found', req }, 'info');
             }
 
+            new SuccessResponse({ message: "Get quiz by ID successfully", req });
             return res.status(200).json(quiz);
         } catch (error) {
-            return res.status(500).json({ message: error.message });
+            return handleErrorResponse(error, req, res);
         }
     },
 
@@ -94,12 +101,13 @@ const quizController = {
             const quizId = req.params.id;
             const quiz = await Quiz.findById(quizId).populate('question').select('title question');
             if (!quiz) {
-                return res.status(404).json({ message: 'Quiz not found' });
+                throw new NotFound({ message: 'Quiz not found', req }, 'info');
             }
             
+            new SuccessResponse({ message: "Get questions by quiz ID successfully", req });
             return res.status(200).json(quiz);
         } catch (error) {
-            return res.status(500).json({ message: error.message });
+            return handleErrorResponse(error, req, res);
         }
     },
 
@@ -116,7 +124,7 @@ const quizController = {
                 { new: true }
             );
             if (!quiz) {
-                return res.status(404).json({ message: 'Quiz not found' });
+                throw new NotFound({ message: 'Quiz not found', req }, 'info');
             }
 
             await Course.updateMany(
@@ -131,9 +139,9 @@ const quizController = {
                 );
             }
 
-            return res.status(200).json(quiz);
+            return new SuccessResponse({ message: "Quiz updated successfully", req }).send(res);
         } catch (error) {
-            return res.status(500).json({ message: error.message });
+            return handleErrorResponse(error, req, res);
         }
     },
 
@@ -154,9 +162,9 @@ const quizController = {
             );
 
             await Quiz.findByIdAndDelete(quizId);
-            return res.status(200).json({ message: 'Quiz deleted successfully' });
+            return new SuccessResponse({ message: "Quiz deleted successfully", req }).send(res);
         } catch (error) {
-            return res.status(500).json({ message: error.message });
+            return handleErrorResponse(error, req, res);
         }
     },
 
@@ -171,7 +179,7 @@ const quizController = {
             }
             console.log(quizIds);
             if (!quizIds || quizIds.length === 0) {
-                return res.status(400).json({ message: 'No quiz IDs provided' });
+                throw new BadRequest({ message: 'No quiz IDs provided', req }, 'info');
             }
 
             await Course.updateMany(
@@ -186,9 +194,9 @@ const quizController = {
 
             await Quiz.deleteMany({ _id: { $in: quizIds } });
 
-            return res.status(200).json({ message: 'Quizzes deleted successfully' });
+            return new SuccessResponse({ message: "Quizzes deleted successfully", req }).send(res);
         } catch (error) {
-            return res.status(500).json({ message: error.message });
+            return handleErrorResponse(error, req, res);
         }
     },
 };

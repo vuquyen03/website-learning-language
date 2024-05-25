@@ -1,8 +1,7 @@
 import { useEffect } from 'react';
 import { easeInOut, easeOut, stagger, useAnimate } from 'framer-motion';
-import { runFireworks } from '../utils/confetti';
 
-const CompleteScreen = ({ quiz }) => {
+const CompleteScreen = ({ corectQuestions, xp, time }) => {
     // This uses the useAnimate hook from Framer Motion to create a new animation scope.
     const [scope, animate] = useAnimate();
 
@@ -13,18 +12,14 @@ const CompleteScreen = ({ quiz }) => {
             animate('.quiz-stat-container', { y: -20 }, { duration: 0 });
             await animate('#complete-title', { scale: 5, y: 100 }, { duration: 0 });
             animate('#complete-title', { opacity: 1, scale: 1 }, { duration: 0.3, ease: easeOut, type: 'tween' });
-            runFireworks();
             await animate('#complete-title', { y: 0 }, { duration: 0.4, delay: 1, ease: easeInOut, type: 'tween' });
             await animate('#divider', { opacity: 1, width: '100%' }, { delay: 0.2, ease: easeInOut });
             await animate('.quiz-stat-container', { opacity: 1, y: 0 }, { duration: 0.5, delay: stagger(0.3), ease: easeOut });
         };
 
         playAnimations();
-    }, []);
+    }, [animate]);
 
-    // get score, xp, and formatted time from quiz
-    const { score, xp } = quiz.getScoreAndXP();
-    const time = quiz.getTime();
 
     return (
         // This div is the animation scope. It will be used to animate the entire component.
@@ -45,26 +40,26 @@ const CompleteScreen = ({ quiz }) => {
                 className="w-full max-w-2xl border-4 border-primary"
             />
             {/* Quiz Statistics Cards */}
-            <div className="w-full max-w-2xl flex flex-row gap-2 sm:gap-4 md:gap-8 font-bold">
-                {/* Score Card */}
+            <div className="w-full max-w-2xl flex flex-row gap-2 sm:gap-4 md:gap-8 font-bold justify-center">
+                {/* Correct Question Card */}
                 <div
                     style={{ opacity: 0 }}
-                    className="quiz-stat-container bg-amber-400"
+                    className="quiz-stat-container bg-amber-400 rounded-lg"
                 >
                     {/* Card Header */}
                     <div className="p-1">
-                        <h2 className="uppercase">Score</h2>
+                        <h2 className="uppercase">Correct Question</h2>
                     </div>
                     {/* Card Body */}
                     <div className="quiz-stat-body">
-                        <h3 className="text-amber-700 dark:text-amber-400">{score} %</h3>
+                        <h3 className="text-amber-700 dark:text-amber-400 p-1">{corectQuestions}</h3>
                     </div>
                 </div>
 
                 {/* XP Card */}
                 <div
                     style={{ opacity: 0 }}
-                    className="quiz-stat-container bg-sky-400"
+                    className="quiz-stat-container bg-sky-400 rounded-lg"
                 >
                     {/* Card Header */}
                     <div className="p-1">
@@ -72,14 +67,14 @@ const CompleteScreen = ({ quiz }) => {
                     </div>
                     {/* Card Body */}
                     <div className="quiz-stat-body">
-                        <h3 className="text-sky-700 dark:text-sky-400">+{xp} XP</h3>
+                        <h3 className="text-sky-700 dark:text-sky-400 p-1">+{xp} XP</h3>
                     </div>
                 </div>
 
                 {/* Time Card */}
                 <div
                     style={{ opacity: 0 }}
-                    className="quiz-stat-container bg-lime-400"
+                    className="quiz-stat-container bg-lime-400 rounded-lg"
                 >
                     {/* Card Header */}
                     <div className="p-1">
@@ -87,7 +82,7 @@ const CompleteScreen = ({ quiz }) => {
                     </div>
                     {/* Card Body */}
                     <div className="quiz-stat-body">
-                        <h3 className="text-lime-700 dark:text-lime-400">{time}</h3>
+                        <h3 className="text-lime-700 dark:text-lime-400 p-1">{time}</h3>
                     </div>
                 </div>
             </div>

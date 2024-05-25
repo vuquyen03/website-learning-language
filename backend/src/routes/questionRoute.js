@@ -9,13 +9,13 @@ const router = express.Router();
 router.post('/', verifyJWT, isAdmin, verifyCsrfToken, csrfMiddleware, questionController.createQuestion);
 
 // GET ALL QUIZZES REFERENCE
-router.get('/', questionController.getAllQuestionsReference);
+router.get('/', verifyJWT, questionController.getAllQuestionsReference);
 
 // GET ALL QUIZZES
 router.get('/all', verifyJWT, questionController.getAllQuestions);
 
 // GET MANY QUIZZES
-router.get('/many', questionController.getManyQuestions);
+router.get('/many', verifyJWT, questionController.getManyQuestions);
 
 // UPDATE QUIZ
 router.put('/edit/:id', verifyJWT, isAdmin, verifyCsrfToken, csrfMiddleware, questionController.updateQuestionById);
@@ -27,6 +27,6 @@ router.delete('/delete/:id', verifyJWT, isAdmin, verifyCsrfToken, csrfMiddleware
 router.delete('/deleteMany', verifyJWT, isAdmin, verifyCsrfToken, csrfMiddleware, questionController.deleteManyQuestions);
 
 // GET QUIZ BY ID
-router.get('/:id', questionController.getQuestionById);
+router.get('/:id', verifyJWT, questionController.getQuestionById);
 
 export default router;

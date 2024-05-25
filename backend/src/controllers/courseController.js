@@ -3,6 +3,9 @@ import Quiz from '../models/Quiz.js';
 import { bucket } from '../config/firebaseConnection.js';
 import { fileTypeFromBuffer } from 'file-type';
 import { v4 as uuidv4 } from 'uuid';
+import { BadRequest, NotFound, InternalServerError } from '../core/error.response.js';
+import { SuccessResponse, Created } from '../core/success.response.js';
+import { handleErrorResponse } from '../helper/handleErrorResponse.js';
 
 const courseController = {
     // Method: POST
@@ -13,11 +16,10 @@ const courseController = {
             let imageUrl = '';
 
             const file = req.file;
-            console.log("file:", file)
-            if(file) {
+            if (file) {
                 const fileType = await fileTypeFromBuffer(file.buffer);
                 if (!fileType || !['image/jpeg', 'image/png', 'image/gif'].includes(fileType.mime)) {
-                    return res.status(400).json({ message: 'Invalid file type. Only JPEG, PNG, and GIF are allowed.' });
+                    throw new BadRequest({ message: `Invalid file type. Only JPEG, PNG, and GIF are allowed. Attempted to upload: ${fileType.mime}`, req })
                 }
 
                 const blob = bucket.file(uuidv4());
@@ -29,18 +31,20 @@ const courseController = {
 
                 await new Promise((resolve, reject) => {
                     blobStream.on('error', (err) => {
+                        new InternalServerError({ message: err.message, req });
                         reject(err);
                     });
-    
+
                     blobStream.on('finish', () => {
                         imageUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURI(blob.name)}?alt=media`;
+                        new SuccessResponse({ message: `Image uploaded successfully: ${imageUrl}`, req });
                         resolve();
                     });
-    
+
                     blobStream.end(file.buffer);
                 });
 
-            } 
+            }
 
             const newCourse = new Course({ courseTitle, description, estimatedTime, image: imageUrl });
             await newCourse.save();
@@ -48,14 +52,14 @@ const courseController = {
             if (req.body.quiz) {
                 const quiz = await Quiz.find({ _id: { $in: req.body.quiz } });
                 if (!quiz || quiz.length !== req.body.quiz.length) {
-                    return res.status(404).json({ message: 'Quiz not found' });
+                    return new NotFound({ message: 'Quiz not found', req }, 'info').send(res);
                 }
                 await quiz.updateMany({ $push: { course: newCourse._id } });
             }
 
-            res.status(201).json(newCourse);
+            return new Created({ message: 'Course created successfully', req }).send(res);
         } catch (error) {
-            return res.status(500).json({ message: error.message });
+            return handleErrorResponse(error, req, res);
         }
     },
 
@@ -65,13 +69,14 @@ const courseController = {
         try {
             const courses = await Course.find().populate('quiz');
             if (!courses || courses.length === 0) {
-                return res.status(404).json({ message: 'No courses found' });
+                throw new NotFound({ message: 'No courses found', req }, 'info');
             }
 
             const total = courses.length;
+            new SuccessResponse({ message: 'Courses found', req });
             return res.status(200).json({ items: courses, total });
         } catch (error) {
-            return res.status(500).json({ message: error.message });
+            return handleErrorResponse(error, req, res);
         }
     },
 
@@ -81,7 +86,7 @@ const courseController = {
         try {
             const courses = await Course.find();
             if (!courses || courses.length === 0) {
-                return res.status(404).json({ message: 'No courses found' });
+                throw new NotFound({ message: 'No courses found', req }, 'info');
             }
 
             // Pagination
@@ -94,9 +99,10 @@ const courseController = {
             // Create data for the current page
             const data = courses.slice(startIndex, endIndex);
 
+            new SuccessResponse({ message: 'Courses found', req });
             return res.status(200).json({ items: data, page, perPage, total });
         } catch (error) {
-            res.status(500).json({ message: error.message });
+            return handleErrorResponse(error, req, res);
         }
     },
 
@@ -107,12 +113,13 @@ const courseController = {
             const courseId = req.params.id;
             const course = await Course.findById(courseId);
             if (!course) {
-                return res.status(404).json({ message: 'Course not found' });
+                throw new NotFound({ message: 'Course not found', req }, 'info');
             }
-    
+
+            new SuccessResponse({ message: 'Course found', req });
             return res.status(200).json(course);
         } catch (error) {
-            return res.status(500).json({ message: error.message });
+            return handleErrorResponse(error, req, res);
         }
     },
 
@@ -121,20 +128,19 @@ const courseController = {
     getManyCourses: async (req, res) => {
         try {
             const courseIds = req.query.ids;
-            // console.log("getManyCourses:", courseIds)
             if (!courseIds || courseIds.length === 0) {
-                return res.status(400).json({ message: 'No course IDs provided' });
+                throw new BadRequest({ message: 'No course IDs provided', req }, 'info');
             }
 
             const courses = await Course.find({ _id: { $in: courseIds } }).select('courseTitle');
             if (!courses || courses.length === 0) {
-                return res.status(404).json({ message: 'No courses found' });
+                throw new NotFound({ message: 'No courses found', req }, 'info');
             }
 
+            new SuccessResponse({ message: 'Courses found', req });
             return res.status(200).json({ items: courses });
         } catch (error) {
-            console.log(error);
-            return res.status(500).json({ message: error.message });
+            return handleErrorResponse(error, req, res);
         }
     },
 
@@ -144,15 +150,14 @@ const courseController = {
         try {
             const courseId = req.params.id;
             const { courseTitle, description, estimatedTime, quiz, level } = req.body;
-            let updateFields = { courseTitle, description, estimatedTime, level };          
+            let updateFields = { courseTitle, description, estimatedTime, level };
             let imageUrl = '';
 
             const file = req.file;
-            // console.log("File:", file)
             if (file) {
                 const fileType = await fileTypeFromBuffer(file.buffer);
                 if (!fileType || !['image/jpeg', 'image/png', 'image/gif'].includes(fileType.mime)) {
-                    return res.status(400).json({ message: 'Invalid file type. Only JPEG, PNG, and GIF are allowed.' });
+                    throw new BadRequest({ message: `Invalid file type. Only JPEG, PNG, and GIF are allowed. Attempted to upload: ${fileType.mime}`, req });
                 }
 
                 const blob = bucket.file(uuidv4());
@@ -161,30 +166,30 @@ const courseController = {
                         contentType: file.mimetype
                     }
                 });
-    
+
                 await new Promise((resolve, reject) => {
                     blobStream.on('error', (err) => {
+                        new InternalServerError({ message: err.message, req });
                         reject(err);
                     });
-    
+
                     blobStream.on('finish', () => {
                         imageUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURI(blob.name)}?alt=media`;
+                        new SuccessResponse({ message: `Image uploaded successfully: ${imageUrl}`, req });
                         resolve();
                     });
-    
+
                     blobStream.end(file.buffer);
                 });
-    
+
                 updateFields.image = imageUrl;
             }
-    
+
             // Convert quiz from string to array of ObjectIds
             if (quiz) {
                 const quizIds = quiz.split(',')
                 updateFields.quiz = quizIds;
             }
-            console.log("updateFields:", updateFields)
-
 
             const course = await Course.findOneAndUpdate(
                 { _id: courseId },
@@ -192,27 +197,25 @@ const courseController = {
                 { new: true }
             );
 
-            console.log("Course:", course)
-    
             if (!course) {
-                return res.status(404).json({ message: 'Course not found' });
+                throw new NotFound({ message: 'Course not found', req }, 'info');
             }
-    
+
             await Quiz.updateMany(
                 { course: course._id },
                 { $pull: { course: course._id } }
             );
-    
+
             if (updateFields.quiz && updateFields.quiz.length > 0) {
                 await Quiz.updateMany(
                     { _id: { $in: updateFields.quiz } },
                     { $push: { course: course._id } }
                 );
             }
-    
-            return res.status(200).json(course);
+
+            return new SuccessResponse({ message: 'Course updated successfully', req }).send(res);
         } catch (error) {
-            return res.status(500).json({ message: error.message });
+            return handleErrorResponse(error, req, res);
         }
     },
 
@@ -221,17 +224,20 @@ const courseController = {
     deleteCourseById: async (req, res) => {
         try {
             const courseId = req.params.id;
-    
+
             await Quiz.updateMany(
                 { course: courseId }, // Tìm tất cả các quiz liên quan đến course
                 { $pull: { course: courseId } }
             );
-    
-            await Course.findByIdAndDelete(courseId);
-    
-            return res.status(200).json({ message: 'Course deleted successfully' });
+
+            const deletedCourse = await Course.findByIdAndDelete(courseId);
+            if (!deletedCourse) {
+                throw new NotFound({ message: 'Course not found', req }, 'info');
+            }
+
+            return new SuccessResponse({ message: 'Course deleted successfully', req }).send(res);
         } catch (error) {
-            return res.status(500).json({ message: error.message });
+            return handleErrorResponse(error, req, res);
         }
     },
 
@@ -241,7 +247,7 @@ const courseController = {
         try {
             const courseIds = req.body.ids;
             if (!courseIds || courseIds.length === 0) {
-                return res.status(400).json({ message: 'No course IDs provided' });
+                throw new BadRequest({ message: 'No course IDs provided', req }, 'info');
             }
 
             await Quiz.updateMany(
@@ -250,10 +256,10 @@ const courseController = {
             );
 
             await Course.deleteMany({ _id: { $in: courseIds } });
-            
-            return res.status(200).json({ message: 'Courses deleted successfully' });
+
+            return new SuccessResponse({ message: 'Courses deleted successfully', req }).send(res);
         } catch (error) {
-            return res.status(400).json({ message: error.message });
+            return handleErrorResponse(error, req, res);
         }
     },
 };

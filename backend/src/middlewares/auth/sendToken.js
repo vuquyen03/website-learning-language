@@ -20,7 +20,6 @@ export const sendToken = async (res, user, accessToken, refreshToken, message, s
 
     // Get CSRF token from setting in middleware
     const csrfToken = res.locals.csrfToken;
-    console.log('csrfToken', csrfToken);
 
     res.status(statusCode).json({ accessToken, refreshToken, csrfToken, user, message });
 };

@@ -5,6 +5,9 @@ import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import { sendMail } from '../helper/sendMail.js';
 import validator from 'validator';
+import { SuccessResponse, Created } from '../core/success.response.js';
+import { BadRequest, NotFound, Unauthorized, Forbidden, InternalServerError } from '../core/error.response.js';
+import { handleErrorResponse } from '../helper/handleErrorResponse.js';
 
 const generateAccessAndRefreshToken = async (userId) => {
     try {
@@ -15,8 +18,8 @@ const generateAccessAndRefreshToken = async (userId) => {
         await user.save();
         return { accessToken, refreshToken };
     } catch (error) {
-        return res.status(500).json({ message: 'Something went wrong while generating refresh and acess token'});
-    }
+        return new InternalServerError({ message: 'Something went wrong while generating refresh and access token' }).send(res);
+    } 
 };
 
 const userController = {
@@ -27,80 +30,80 @@ const userController = {
             const { username, email, password, confirmPassword } = req.body;
             const recaptchaResponse = req.body['g-recaptcha-response'];
 
-            // validate user input
-
-
             if (recaptchaResponse) {
                 try {
                     const recaptchaVerifyUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaResponse}`;
                     const recaptchaVerifyResponse = await fetch(recaptchaVerifyUrl, { method: 'POST' });
                     const recaptchaVerifyData = await recaptchaVerifyResponse.json();
                     if (!recaptchaVerifyData.success) {
-                        return res.status(400).json({ message: 'reCAPTCHA verification failed' });
+                        throw new BadRequest({ message: 'reCAPTCHA verification failed', req }, 'info');
                     }
 
                     continueRegister();
 
                 } catch (error) {
-                    console.log(error);
-                    return res.status(400).json({ message: 'reCAPTCHA verification failed' });
+                    return handleErrorResponse(error, req, res);
                 }
             } else {
-                return res.status(400).json({ message: 'reCAPTCHA verification failed' });
+                throw new BadRequest({ message: 'reCAPTCHA verification failed', req }, 'info');
             }
             
             async function continueRegister() {
-                if (!username || !email || !password || !confirmPassword) {
-                    return res.status(400).json({ message: 'All fields are required' });
+                try {
+                    if (!username || !email || !password || !confirmPassword) {
+                        throw new BadRequest({ message: 'All fields are required', req }, 'info');
+                    }
+    
+                    // check if username has invalid characters
+                    if (!/^[a-zA-Z0-9]+$/.test(username)) {
+                        throw new BadRequest({ message: 'Username is invalid, only contain a-z, A-Z, 0-9', req }, 'info');
+                    }
+    
+                    if (username.length < 3) {
+                        throw new BadRequest({ message: 'Username must be at least 3 characters', req }, 'info');
+                    }
+    
+                    // check if user already exists
+                    const existingUser = await User.findOne({ username });
+                    if (existingUser) {
+                        throw new BadRequest({ message: 'Username already exists', req }, 'info');
+                    }
+    
+                    const existingEmail = await User.findOne({ email });
+                    if (existingEmail) {
+                        throw new BadRequest({ message: 'Email already exists', req }, 'info');
+                    }
+    
+                    if (!validator.isStrongPassword(password)){
+                        throw new BadRequest({ message: 'Password is too weak', req }, 'info');
+                    }
+    
+                    if (password !== confirmPassword) {
+                        throw new BadRequest({ message: 'Password does not match', req }, 'info');
+                    }
+    
+                    let verificationToken = crypto.randomBytes(32).toString('hex');
+                    const newUser = new User({ username, email, password, verifyToken: verificationToken });
+                    await newUser.save();
+                    res.cookie('verificationToken', verificationToken, { httpOnly: true, secure: true, sameSite: 'Lax', maxAge: 1000 * 60 * 30 }); 
+    
+                    // send verification email
+                    const verificationUrl = `${process.env.SERVER_URL}/user/verify-email/${verificationToken}`;
+                    const html = `<p>Please click <a href="${verificationUrl}">here</a> to verify your email address.</p>`;
+                    await sendMail(email, 'Verify your email address', html);
+    
+                    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(newUser._id);
+                    
+                    new Created({ message: 'Registered Successfully', req });
+                    // send token
+                    sendToken(res, newUser, accessToken, refreshToken, "Registered Successfully", 201);
+                } catch (error) {
+                    return handleErrorResponse(error, req, res);
                 }
-
-                // check if username has invalid characters
-                if (!/^[a-zA-Z0-9]+$/.test(username)) {
-                    return res.status(400).json({ message: 'Username is invalid, only contain a-z, A-Z, 0-9', field: 'username' });
-                }
-
-                if (username.length < 3) {
-                    return res.status(400).json({ message: 'Username must be at least 3 characters', field: 'username' });
-                }
-
-                // check if user already exists
-                const existingUser = await User.findOne({ username });
-                if (existingUser) {
-                    return res.status(400).json({ message: 'Username already exists', field: 'username' });
-                }
-
-                const existingEmail = await User.findOne({ email });
-                if (existingEmail) {
-                    return res.status(400).json({ message: 'Email already exists', field: 'email' });
-                }
-
-                if (!validator.isStrongPassword(password)){
-                    return res.status(400).json({ message: 'Password is too weak' });
-                }
-
-                if (password !== confirmPassword) {
-                    return res.status(400).json({ message: 'Password does not match' });
-                }
-
-                let verificationToken = crypto.randomBytes(32).toString('hex');
-                const newUser = new User({ username, email, password, verifyToken: verificationToken });
-                await newUser.save();
-                res.cookie('verificationToken', verificationToken, { httpOnly: true, secure: true, sameSite: 'Lax', maxAge: 1000 * 60 * 30 }); 
-
-                // send verification email
-                const verificationUrl = `${process.env.SERVER_URL}/user/verify-email/${verificationToken}`;
-                const html = `<p>Please click <a href="${verificationUrl}">here</a> to verify your email address.</p>`;
-                console.log(html);
-                await sendMail(email, 'Verify your email address', html);
-
-                const { accessToken, refreshToken } = await generateAccessAndRefreshToken(newUser._id);
-
-                // send token
-                sendToken(res, newUser, accessToken, refreshToken, "Registered Successfully", 201);
             }
         }
         catch (error) {
-            return res.status(500).json({ message: error.message });
+            return handleErrorResponse(error, req, res);
         }
     },
 
@@ -118,49 +121,54 @@ const userController = {
                     const recaptchaVerifyData = await recaptchaVerifyResponse.json();
 
                     if (!recaptchaVerifyData.success) {
-                        return res.status(400).json({ message: 'reCAPTCHA verification failed' });
+                        throw new BadRequest({ message: 'reCAPTCHA verification failed', req }, 'info');
                     }
 
                     continueLogin();
                 } catch (error) {
-                    return res.status(400).json({ message: 'reCAPTCHA verification failed' });
+                    return handleErrorResponse(error, req, res);
                 }
             } else {
                 continueLogin();
             }
 
             async function continueLogin() {
-                if (!email || !password) {
-                    return res.status(400).json({ message: 'All fields are required' });
-                }
-    
-                const user = await User.findOne({ email }).select('-refreshToken -passwordHistory -resetPasswordToken -resetPasswordExpires -verifyToken');
-                if (!user) {
-                    return res.status(400).json({ message: 'Incorrect Email or Password' });
-                }
-    
-                if (user.loginAttempts >= 5 && !recaptchaResponse) {
-                    return res.status(400).json({ message: 'Please complete the reCAPTCHA' });
-                }
-    
-                const isMatch = await user.isCorrectPassword(password);
-                if (!isMatch) {
-                    user.loginAttempts += 1;
+                try {
+                    if (!email || !password) {
+                        throw new BadRequest({ message: 'All fields are required', req }, 'info');
+                    }
+        
+                    const user = await User.findOne({ email }).select('-refreshToken -passwordHistory -resetPasswordToken -resetPasswordExpires -verifyToken');
+                    if (!user) {
+                        throw new Unauthorized({ message: 'Incorrect Email or Password', req }, 'info');
+                    }
+        
+                    if (user.loginAttempts >= 5 && !recaptchaResponse) {
+                        throw new Unauthorized({ message: 'Please complete the reCAPTCHA', req }, 'info');
+                    }
+        
+                    const isMatch = await user.isCorrectPassword(password);
+                    if (!isMatch) {
+                        user.loginAttempts += 1;
+                        await user.save();
+                        throw new Unauthorized({ message: 'Incorrect Email or Password', req }, 'info');
+                    }
+        
+                    user.loginAttempts = 0;
                     await user.save();
-                    return res.status(400).json({ message: 'Incorrect Email or Password' });
+        
+                    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user.id);
+                    user.loginAttempts = undefined;
+                    user.password = undefined;
+    
+                    new SuccessResponse({ message: `Welcome back, ${user.username}`, req });
+                    sendToken(res, user, accessToken, refreshToken, `Welcome back, ${user.username}`, 200);    
+                } catch (error) {
+                    return handleErrorResponse(error, req, res);
                 }
-    
-                user.loginAttempts = 0;
-                await user.save();
-    
-                const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user.id);
-                user.loginAttempts = undefined;
-                user.password = undefined;
-
-                sendToken(res, user, accessToken, refreshToken, `Welcome back, ${user.username}`, 200);    
             }
         } catch (error) {
-            return res.status(500).json({ message: error.message });
+            return handleErrorResponse(error, req, res);
         }
     },
 
@@ -176,6 +184,8 @@ const userController = {
                 sameSite: "Lax",
             };
     
+            new SuccessResponse({ message: 'Logged Out Successfully', req });
+
             // clear cookies
             res
             .status(200)
@@ -187,7 +197,7 @@ const userController = {
                 message: "Logged Out Successfully",
             });
         } catch (error) {
-            return res.status(500).json({ message: error.message });
+            return new InternalServerError({ message: error.message, req }).send(res);
         }   
     },
 
@@ -197,7 +207,7 @@ const userController = {
         try {
             const users = await User.find().select('-password -refreshToken -verifyToken -passwordHistory -resetPasswordToken -resetPasswordExpires');
             if (!users || users.length === 0) {
-                return res.status(404).json({ message: 'No users found' });
+                throw new NotFound({ message: 'No users found', req }, 'info');
             }
     
             // Pagination
@@ -209,10 +219,10 @@ const userController = {
     
             // Create data for the current page
             const data = users.slice(startIndex, endIndex);
-    
+            new SuccessResponse({ message: 'Users retrieved successfully', req });
             return res.status(200).json({ items: data, page, perPage, total });
         } catch (error) {
-            return res.status(500).json({ message: error.message });
+            return handleErrorResponse(error, req, res);
         }
     },
 
@@ -222,14 +232,13 @@ const userController = {
         try {
             const users = await User.find().select('username email role experience createdAt');
             if (!users || users.length === 0) {
-                return res.status(404).json({ message: 'No users found' });
+                throw new NotFound({ message: 'No users found', req }, 'info');
             }
     
             const total = users.length;
-    
             return res.status(200).json({ items: users, total });
         } catch (error) {
-            return res.status(500).json({ message: error.message });
+            return handleErrorResponse(error, req, res);
         }
     },
 
@@ -240,11 +249,12 @@ const userController = {
             const userId = req.params.id;
             const user = await User.findById(userId).select('username email role experience createdAt isVerified -_id');
             if (!user) {
-                return res.status(404).json({ message: 'User not found' });
+                throw new NotFound({ message: 'User not found', req }, 'info');
             }
+            new SuccessResponse({ message: 'User retrieved successfully', req });
             return res.status(200).json(user);
         } catch (error) {
-            return res.status(500).json({ message: error.message });
+            return handleErrorResponse(error, req, res);
         }
     },
 
@@ -256,11 +266,12 @@ const userController = {
             console.log(req.user);
             const user = await User.findById(userId).select('username role experience createdAt');
             if (!user) {
-                return res.status(400).json({ message: 'User not found' });
+                throw new NotFound({ message: 'User not found', req }, 'info');
             }
+            new SuccessResponse({ message: 'Profile retrieved successfully', req });
             return res.status(200).json({ user });
         } catch (error) {
-            return res.status(500).json({ message: error.message });
+            return handleErrorResponse(error, req, res);
         }
     },
 
@@ -270,7 +281,7 @@ const userController = {
         try {
             const users = await User.find().select('username experience role -_id');
             if (!users || users.length === 0) {
-                return res.status(404).json({ message: 'No users found' });
+                throw new NotFound({ message: 'No users found', req }, 'info');
             }
 
             const filterUsers = users.filter(user => user.role !== 'admin');
@@ -281,7 +292,7 @@ const userController = {
     
             return res.status(200).json({ items, total });
         } catch (error) {
-            return res.status(500).json({ message: error.message });
+            return handleErrorResponse(error, req, res);
         }
     },
 
@@ -294,41 +305,42 @@ const userController = {
             const user = await User.findById(userId).select('username password role experience createdAt _id');
             
             if (!user){
-                return res.status(404).json({ message: 'User not found' });
+                throw new NotFound({ message: 'User not found', req }, 'info');
             }
     
             // check if username has invalid characters
             if (username && !/^[a-zA-Z0-9]+$/.test(username)) {
-                return res.status(400).json({ message: 'Username is invalid, only contain a-z, A-Z, 0-9', field: 'username' });
+                throw new BadRequest({ message: 'Username is invalid, only contain a-z, A-Z, 0-9', req }, 'info');
             }
     
             if (username && username.length < 3) {
-                return res.status(400).json({ message: 'Username must be at least 3 characters', field: 'username' });
+                throw new BadRequest({ message: 'Username must be at least 3 characters', req }, 'info');
             }
     
             if (!password){
-                return res.status(400).json({ message: "Required password"});
+                throw new BadRequest({ message: 'Required password', req }, 'info');
             }
     
             const isMatch = await user.isCorrectPassword(password);
             if (!isMatch){
-                return res.status(400).json({ message: 'Incorrect old password' });
+                throw new Unauthorized({ message: 'Incorrect old password', req }, 'info');
             }
     
             if (username){
                 const existingUser = await User.findOne({ username: username });
                 if (existingUser && existingUser._id.toString() !== userId){
-                    return res.status(400).json({ message: 'Username already exists', field: 'username' });
+                    throw new BadRequest({ message: 'Username already exists', req }, 'info');
                 }
             }
     
             user.username = username;
             const updatedUser = await user.save();
             updatedUser.password = undefined;
-            
+
+            new SuccessResponse({ message: `Profile user ${userId} updated successfully`, req });
             return res.status(200).json( updatedUser );
         } catch (error) {
-            return res.status(500).json({ message: error.message });
+            return handleErrorResponse(error, req, res);
         }
     },
 
@@ -337,20 +349,24 @@ const userController = {
     verifyEmail: async (req, res) => {
         try {
             const token = req.params.token;
+            if (!token) {
+                new BadRequest({ message: 'Invalid or expired token', req });
+                return res.redirect(`${process.env.CLIENT_URL}/verify-email/failed`);
+            }
             const user = await User.findOne({ verifyToken: token });
             if (!user) {
-                console.log('Invalid token');
+                new NotFound({ message: 'Invalid or expired token', req });
                 return res.redirect(`${process.env.CLIENT_URL}/verify-email/failed`);
             }
             user.isVerified = true;
             user.verifyToken = '';
             await user.save();
             res.clearCookie('verificationToken');
-            console.log('Email verified successfully');
+            new SuccessResponse({ message: 'Email verified successfully', req });
             return res.redirect(`${process.env.CLIENT_URL}/verify-email/success`);
             
         } catch (error) {
-            return res.status(500).json({ message: error.message });
+            return new InternalServerError({ message: error.message, req }).send(res);
         }
     },
 
@@ -359,14 +375,13 @@ const userController = {
     resendEmail: async (req, res) => {
         try {
             const email = req.body.email;
-            console.log(email);
             const user = await User.findOne({ email });
             if (!user) {
-                return res.status(404).json({ message: 'User not found' });
+                throw new NotFound({ message: 'User not found', req }, 'info');
             }
 
             if (user.isVerified) {
-                return res.status(400).json({ message: 'Email already verified' });
+                throw new BadRequest({ message: 'Email already verified', req }, 'info');
             }
 
             let verificationToken = crypto.randomBytes(32).toString('hex');
@@ -380,9 +395,9 @@ const userController = {
             console.log(html);
             await sendMail(email, 'Verify your email address', html);
 
-            return res.status(200).json({ message: 'Verification email sent successfully' });
+            return new SuccessResponse({ message: 'Verification email sent successfully', req }).send(res);
         } catch (error) {
-            return res.status(500).json({ message: error.message });
+            return handleErrorResponse(error, req, res);
         }
     },
 
@@ -393,25 +408,25 @@ const userController = {
         try {
             const { oldPassword, newPassword, confirmPassword } = req.body;
             const userId = req.user._id;
-            if (!oldPassword || !newPassword) {
-                return res.status(400).json({ message: 'All fields are required' });
+            if (!oldPassword || !newPassword || !confirmPassword) {
+                throw new BadRequest({ message: 'All fields are required', req }, 'info');
             }
     
             // check if old password is correct
             const user = await User.findById(userId);
             const isMatch = await user.isCorrectPassword(oldPassword);
             if (!isMatch) {
-                return res.status(400).json({ message: 'Incorrect old password' });
+                throw new Unauthorized({ message: 'Incorrect old password', req }, 'info');
             }
     
             // check new password length
             if (!validator.isStrongPassword(newPassword)) {
-                return res.status(400).json({ message: 'Password is too weak' });
+                throw new BadRequest({ message: 'Password is too weak', req }, 'info');
             }
     
             // check confirm password
             if (newPassword !== confirmPassword) {
-                return res.status(400).json({ message: 'Password does not match' });
+                throw new BadRequest({ message: 'Password does not match', req }, 'info');
             }
 
             // check new password is in the password history
@@ -425,17 +440,16 @@ const userController = {
             };
 
             if (isInPasswordHistory) {  
-                return res.status(400).json({ message: 'Password has been used before' });
+                throw new BadRequest({ message: 'Password has been used before', req }, 'info');
             }
             
             // update password
             user.password = newPassword;
             await user.save();
-    
-            return res.status(200).json({ message: 'Password changed successfully' });
-    
+            
+            new SuccessResponse({message: 'Password changed successfully', req}).send(res);
         } catch (error) {
-            return res.status(500).json({ message: error.message });
+            return handleErrorResponse(error, req, res);
         }
     },
 
@@ -449,7 +463,7 @@ const userController = {
 
             const { email } = req.body;
             if (!email) {
-                return res.status(400).json({ message: 'Email is required' });
+                throw new BadRequest({ message: 'Email is required', req }, 'info');
             }
     
             const user = await User.findOne({ email });
@@ -472,11 +486,11 @@ const userController = {
 
             // Add an artificial delay to equalize the response time
             setTimeout(() => {
-                return res.status(200).json({ message: 'Reset link sent to your email' });
+                new SuccessResponse({ message: 'Reset link sent to your email', req }).send(res);
             }, delay);
     
         } catch (error) {
-            return res.status(500).json({ message: error.message });
+            return handleErrorResponse(error, req, res);
         }
     },
 
@@ -487,15 +501,15 @@ const userController = {
             const { password, confirmPassword } = req.body;
             const resetToken = req.params.token;
             if (!password || !confirmPassword) {
-                return res.status(400).json({ message: 'All fields are required' });
+                throw new BadRequest({ message: 'All fields are required', req }, 'info');
             }
     
             if (password !== confirmPassword) {
-                return res.status(400).json({ message: 'Password does not match' });
+                throw new BadRequest({ message: 'Password does not match', req }, 'info');
             }
 
             if (!validator.isStrongPassword(password)) {
-                return res.status(400).json({ message: 'Password is too weak' });
+                throw new BadRequest({ message: 'Password is too weak', req }, 'info');
             }
     
             const user = await User.findOne({
@@ -504,7 +518,7 @@ const userController = {
             });
     
             if (!user) {
-                return res.status(400).json({ message: 'Invalid or expired token' });
+                throw new BadRequest({ message: 'Invalid or expired token', req }, 'info');
             }
     
             // check new password is in the password history
@@ -518,7 +532,7 @@ const userController = {
             };
     
             if (isInPasswordHistory) {
-                return res.status(400).json({ message: 'Password has been used before' });
+                throw new BadRequest({ message: 'Password has been used before', req }, 'info');
             }
 
             // update password
@@ -527,10 +541,9 @@ const userController = {
             user.resetPasswordExpires = undefined;
             await user.save();
 
-            return res.status(200).json({ message: 'Password reset successfully' });
-    
+            new SuccessResponse({ message: 'Password reset successfully', req }).send(res);    
         } catch (error) {
-            return res.status(500).json({ message: error.message });
+            return handleErrorResponse(error, req, res);
         }
     },
 
@@ -538,25 +551,53 @@ const userController = {
     // Path: /user/validate-reset-token
     validateResetToken: async (req, res) => {
         const { token } = req.body;
-        // console.log(token);
         try {
             const user = await User.findOne({
                 resetPasswordToken: token,
                 resetPasswordExpires: { $gt: Date.now() }
             });
-
             if (!user) {
-                return res.status(400).json({ message: 'Invalid or expired token' });
+                throw new BadRequest({ message: 'Invalid or expired token', req }, 'info');
             }
 
-            res.status(200).json({ message: 'Token is valid' });
+            new SuccessResponse({ message: 'Token is valid', req }).send(res);
         } catch (error) {
-            res.status(500).json({ message: 'Internal server error' });
+            return handleErrorResponse(error, req, res);
         }
     },
 
+    // Method: PUT
+    // Path: /user/update-experience/
     updateExperience: async (req, res) => {
-    
+        try {
+            const userId = req.user._id;
+            const { experience } = req.body;
+
+            console.log(experience  + ' ' + userId)
+
+            // Check if the user's experience is required
+            const requiredExperience = 8;
+            if (experience < requiredExperience) {
+                throw new BadRequest({ message: `Experience must be at least ${requiredExperience}`, req }, 'info');
+            }
+            
+            const user = await User.findById(userId);
+            if (!user) {
+                throw new NotFound({ message: 'User not found', req }, 'info');
+            }
+
+            if (!experience) {
+                throw new BadRequest({ message: 'Experience is required', req }, 'info');
+            }
+
+            // add experience
+            user.experience += experience;
+
+            await user.save();
+            return new SuccessResponse({ message: 'Experience updated successfully', req }).send(res);
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message });
+        }
     },
 
     // Method: PUT
@@ -572,13 +613,13 @@ const userController = {
             );
             
             if (!user) {
-                return res.status(404).json({ message: 'User not found' });
+                throw new NotFound({ message: 'User not found', req }, 'info');
             }
 
             user.password = undefined;
-            return res.status(200).json(user);
+            new SuccessResponse({ message: 'Admin updated user successfully', req }).send(res);
         } catch (error) {
-            return res.status(500).json({ message: error.message });
+           return handleErrorResponse(error, req, res);
         }
     },
 
@@ -587,9 +628,9 @@ const userController = {
     selfDeleteAccount: async (req, res) => {
         try {
             await User.findByIdAndDelete(req.user._id);
-            return res.status(200).json({ message: 'Account deleted successfully' });
+            new SuccessResponse({ message: 'Account deleted successfully', req }).send(res);
         } catch (error) {
-            return res.status(500).json({ message: error.message });
+            return new InternalServerError({ message: error.message, req }).send(res);
         }
     },
 
@@ -599,9 +640,9 @@ const userController = {
         try {
             const userId = req.params.id;
             await User.findByIdAndDelete(userId);
-            return res.status(200).json({ message: 'Account deleted successfully' });
+            new SuccessResponse({ message: 'Account deleted successfully', req }).send(res);
         } catch (error) {
-            return res.status(500).json({ message: error.message });
+            return new InternalServerError({ message: error.message, req }).send(res);
         }
     },
 
@@ -611,9 +652,9 @@ const userController = {
         try {
             const userIds = req.body.ids;
             await User.deleteMany({ _id: { $in: userIds } });
-            return res.status(200).json({ message: 'Accounts deleted successfully' });
+            new SuccessResponse({ message: 'Accounts deleted successfully', req }).send(res);
         } catch (error) {
-            return res.status(500).json({ message: error.message });
+            return handleErrorResponse(error, req, res);
         }
     },
 
@@ -623,25 +664,24 @@ const userController = {
         try {
             const refreshToken = req.cookies.refreshToken;
             if (!refreshToken) {
-                return res.status(403).json({ message: 'User not authenticated' });
+                throw new Unauthorized({ message: 'User not authenticated', req }, 'info');
             }
     
             const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
             const user = await User.findById(decoded._id);
             if (!user) {
-                return res.status(403).json({ message: 'User not authenticated' });
+                throw new NotFound({ message: 'User not found', req }, 'info');
             }
     
             if (user.refreshToken !== refreshToken) {
-                return res.status(403).json({ message: 'Refresh token not valid' });
+                throw new Forbidden({ message: 'Refresh token not valid', req });
             }
-            // console.log("Old RefreshToken", user.refreshToken);
     
             const newAccessToken = await user.generateAccessToken();
             sendToken(res, user, newAccessToken, refreshToken, 'Token Refreshed Successfully', 200);
     
         } catch (error) {
-            return res.status(500).json({ message: error.message });
+            return handleErrorResponse(error, req, res);
         }
     },
 
@@ -651,16 +691,17 @@ const userController = {
         try {
             const token = req.cookies.accessToken;
             if (!token) {
-                return res.status(401).json({ message: 'You need to login' });
+               throw new Unauthorized({ message: 'User not authenticated', req }, 'info');
             }
             const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
             const user = await User.findById(decoded._id).select('username email role isVerified experience createdAt -_id');
             if (!user) {
-                return res.status(404).json({ message: 'User not found' });
+                throw new NotFound({ message: 'User not found', req }, 'info');
             }
+            new SuccessResponse({ message: 'User is logged in', req });
             return res.status(200).json({ user });
         } catch (error) {
-            return res.status(500).json({ message: error.message });
+            return handleErrorResponse(error, req, res);
         }
     },
 };

@@ -1,5 +1,8 @@
 import Question from "../models/Question.js";
 import Quiz from "../models/Quiz.js";
+import { BadRequest, NotFound } from "../core/error.response.js";
+import { SuccessResponse, Created } from "../core/success.response.js";
+import { handleErrorResponse } from "../helper/handleErrorResponse.js";
 
 const questionController = {
     // Method: POST
@@ -10,9 +13,10 @@ const questionController = {
             const newQuestion = new Question({ question, correctOption, incorrectOptions });
             await newQuestion.save();
 
-            res.status(201).json(newQuestion);
+            new Created({ message: "Question created successfully", req });
+            return res.status(201).json(newQuestion);
         } catch (error) {
-            return res.status(500).json({ message: error.message });
+            return handleErrorResponse(error, req, res);
         }
     },
 
@@ -22,7 +26,7 @@ const questionController = {
         try {
             const questions = await Question.find();
             if (!questions || questions.length === 0) {
-                return res.status(404).json({ message: 'No questions found' });
+                throw new NotFound({ message: 'No questions found', req }, 'info');
             }
 
             // Pagination
@@ -35,9 +39,10 @@ const questionController = {
             // Create data for the current page
             const data = questions.slice(startIndex, endIndex);
 
+            new SuccessResponse({ message: "Get Questions Reference successfully", req });
             return res.status(200).json({ items: data, page, perPage, total });
         } catch (error) {
-            res.status(500).json({ message: error.message });
+            return handleErrorResponse(error, req, res);
         }
     },
 
@@ -47,12 +52,13 @@ const questionController = {
         try {
             const questions = await Question.find().populate('quiz', 'title');
             if (!questions || questions.length === 0) {
-                return res.status(404).json({ message: 'No questions found' });
+                throw new NotFound({ message: 'No questions found', req }, 'info');
             }
 
+            new SuccessResponse({ message: "Get all questions successfully", req });
             return res.status(200).json(questions);
         } catch (error) {
-            res.status(500).json({ message: error.message });
+            return handleErrorResponse(error, req, res);
         }
     },
 
@@ -62,17 +68,18 @@ const questionController = {
         try {
             const questionIds = req.query.ids;
             if (!questionIds || questionIds.length === 0) {
-                return res.status(400).json({ message: 'No question IDs provided' });
+                throw new BadRequest({ message: 'No question IDs provided', req }, 'info');
             }
 
             const questions = await Question.find({ _id: { $in: questionIds } });
             if (!questions || questions.length === 0) {
-                return res.status(404).json({ message: 'No questions found' });
+                throw new NotFound({ message: 'No questions found', req }, 'info');
             }
 
+            new SuccessResponse({ message: "Get many questions successfully", req });
             return res.status(200).json({ items: questions });
         } catch (error) {
-            return res.status(500).json({ message: error.message });
+            return handleErrorResponse(error, req, res);
         }
     },
 
@@ -83,12 +90,13 @@ const questionController = {
             const questionId = req.params.id;
             const question = await Question.findById(questionId);
             if (!question) {
-                return res.status(404).json({ message: 'Question not found' });
+                throw new NotFound({ message: 'Question not found', req }, 'info');
             }
 
+            new SuccessResponse({ message: "Get question by ID successfully", req });
             return res.status(200).json(question);
         } catch (error) {
-            return res.status(500).json({ message: error.message });
+            return handleErrorResponse(error, req, res);
         }
     },
 
@@ -105,7 +113,7 @@ const questionController = {
                 { new: true }
             );
             if (!question) {
-                return res.status(404).json({ message: 'Question not found' });
+                throw new NotFound({ message: 'Question not found', req }, 'info');
             }
 
             await Quiz.updateMany(
@@ -120,9 +128,10 @@ const questionController = {
                 );
             }
 
+            new SuccessResponse({ message: "Question updated successfully", req });
             return res.status(200).json(question);
         } catch (error) {
-            return res.status(500).json({ message: error.message });
+            return handleErrorResponse(error, req, res);
         }
     },
 
@@ -133,7 +142,7 @@ const questionController = {
             const questionId = req.params.id;
             const question = await Question.findByIdAndDelete(questionId);
             if (!question) {
-                return res.status(404).json({ message: 'Question not found' });
+                throw new NotFound({ message: 'Question not found', req }, 'info');
             }
 
             await Quiz.updateMany(
@@ -141,9 +150,9 @@ const questionController = {
                 { $pull: { question: questionId } }
             );
 
-            return res.status(200).json({ message: 'Question deleted successfully' });
+            return new SuccessResponse({ message: "Question deleted successfully", req }).send(res);
         } catch (error) {
-            return res.status(500).json({ message: error.message });
+            return handleErrorResponse(error, req, res);
         }
     },
 
@@ -153,7 +162,7 @@ const questionController = {
         try {
             const questionIds = req.body.ids;
             if (!questionIds || questionIds.length === 0) {
-                return res.status(400).json({ message: 'No question IDs provided' });
+                throw new BadRequest({ message: 'No question IDs provided', req }, 'info');
             }
     
             await Quiz.updateMany(
@@ -163,9 +172,9 @@ const questionController = {
     
             await Question.deleteMany({ _id: { $in: questionIds } });
     
-            return res.status(200).json({ message: 'Questions deleted successfully' });
+            return new SuccessResponse({ message: "Questions deleted successfully", req }).send(res);
         } catch (error) {
-            return res.status(500).json({ message: error.message });
+            return handleErrorResponse(error, req, res);
         }
     }
 };

@@ -16,7 +16,7 @@ const logger = createLogger({
             format: 'YYYY-MM-DD HH:mm:ss.SSS A',
         }),
         align(),
-        printf( info => `${info.timestamp} ${info.level}: ${info.message}`)
+        printf( info => `${info.timestamp} ${info.level.toUpperCase()}: ${info.message}`)
     ),
     transports: [
         new transports.Console(),

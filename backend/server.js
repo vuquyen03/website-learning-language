@@ -28,16 +28,14 @@ app.use(
     })
   );
 app.use(cookieParser()); 
+app.use(morgan('dev'));
 
-// Set up logger
-app.use(morgan('combined', {
-  stream: {
-    write: message => logger.info(message.trim())
-  }
-}));
-
-// set up morgan
-// app.use(morgan('dev'));
+// // Set up logger
+// app.use(morgan('combined', {
+//   stream: {
+//     write: message => logger.info(message.trim())
+//   }
+// }));
 
 
 // Middleware to set Cache-Control headers

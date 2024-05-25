@@ -1,5 +1,6 @@
 import multer from "multer";
 import path from "path";
+import { Forbidden } from "../../core/error.response.js";
 
 const storage = multer.memoryStorage();
 
@@ -11,7 +12,8 @@ const fileFilter = (req, file, cb) => {
     if (mimetype && extname) {
         return cb(null, true);
     } else {
-        cb('Error: Images Only!');
+        const error = new Forbidden({ message: `Invalid file type. Only JPEG, PNG are allowed. Attempted to upload: ${file.originalname}`, req });
+        cb(error);
     }
 };
 

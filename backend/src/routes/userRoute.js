@@ -1,13 +1,13 @@
 import express from 'express';
 import userController from '../controllers/userController.js';
 import { verifyJWT, isAdmin } from '../middlewares/auth/auth.js';
-import { loginRateLimiter, forgotPasswordRateLimiter } from '../middlewares/rateLimit/rate-limit.js';
+import { loginRateLimiter, forgotPasswordRateLimiter, registerRateLimiter } from '../middlewares/rateLimit/rate-limit.js';
 import csrfMiddleware, { verifyCsrfToken } from '../middlewares/auth/csrfProtection.js';
 
 const router = express.Router();
 
 // REGISTER USER
-router.post('/register', csrfMiddleware, userController.register);
+router.post('/register', registerRateLimiter, csrfMiddleware, userController.register);
 
 // LOGIN USER
 router.post('/login', loginRateLimiter, csrfMiddleware, userController.login);
@@ -47,6 +47,9 @@ router.post('/refresh-token', userController.refreshToken);
 
 // GET EXPERIENCE 
 router.get('/experience', verifyJWT, userController.getExperienceAllUsers);
+
+// USER UPDATE EXPERIENCE
+router.put('/update-experience', verifyJWT, verifyCsrfToken, csrfMiddleware, userController.updateExperience);
 
 // GET ALL USERS
 router.get('/all', verifyJWT, isAdmin, userController.getAllUsers);

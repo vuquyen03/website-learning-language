@@ -27,6 +27,6 @@ router.delete('/delete/:id', verifyJWT, isAdmin, verifyCsrfToken, csrfMiddleware
 router.delete('/deleteMany', verifyJWT, isAdmin, verifyCsrfToken, csrfMiddleware, quizController.deleteManyQuizzes);
 
 // GET QUIZ BY ID
-router.get('/:id', quizController.getQuizById);
+router.get('/:id', verifyJWT, quizController.getQuizById);
 
 export default router;
