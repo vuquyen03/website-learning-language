@@ -45,4 +45,6 @@ This is a learning language website built using the MERN stack (MongoDB, Express
 ![Admin Panel](screenshots/listUser.png)
 *Figure 6: Admin Panel*
 
+## Deploy
+Demo: https://deploy-web-client.vercel.app/
 
